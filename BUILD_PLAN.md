@@ -226,3 +226,12 @@ _Append one line per completed step. Keep newest last._
   emits CONFIG_WEAKENED for a goal failing at base but not after (FR-22) — full config-
   revert replay wiring is step 8. Candidates still pass through flake confirmation.
   Suite: 45 tests, 41 pass / 4 skip.
+- 2026-08-27 — step 5 done: `verdict.py` — `headline()` picks the highest-precedence
+  verdict across all modules (§4.3, DR-4), HONEST_FIX on an empty list. `exit_code()` /
+  `is_blocking()` apply the §5 blocking rule with per-verdict `.greenwash.toml` overrides
+  (§6.7). `resolve(...)` assembles the full findings list plus synthetic state findings:
+  NO_TEST_CHANGES when nothing testable changed, INCONCLUSIVE_COMPILE when the base
+  tests don't compile (gate findings still outrank it, §9), INCONCLUSIVE_BUILD on no
+  reports, INCONCLUSIVE_FLAKY only when every per-test candidate was demoted and no gate
+  finding survived (FR-28). Pure function, fully unit-tested. Suite: 60 tests, 56 pass /
+  4 skip.
