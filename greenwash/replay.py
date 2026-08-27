@@ -4,20 +4,39 @@ Run A ("after"): all hunks applied.
 Run B ("source-only"): test + config reverted to base.
 Run C ("base", optional): nothing applied (FR-14) — strengthens the verdict.
 
-Arbitrary user build command per run; ship a Maven default that tolerates test failures
-without aborting the build (FR-12). Skip the replay when no test/config files changed
-(FR-13). Per run capture: exit code, failing build-goal identifiers, all discoverable
-test reports (FR-15). Configurable per-run timeout -> INCONCLUSIVE_BUILD (FR-16).
-Optionally restrict the build to touched modules and dependents, e.g. `mvn -pl ... -am`
-(FR-17) — the primary cost lever under NFR-7. Clean up worktrees on exit unless --keep
-(FR-18).
+Each run executes a build command in an isolated worktree (see revisions.worktree) and
+captures exit code, failing build-goal identifiers, and every discoverable test report
+(FR-15). The shipped Maven default tolerates test failures so later gates still run and
+their outcomes stay visible (FR-12). A per-run timeout degrades the run to
+INCONCLUSIVE_BUILD (FR-16). Where the build tool supports it, the build is scoped to the
+touched modules and their dependents via `-pl … -am` (FR-17), the primary cost lever
+under NFR-7. Worktree cleanup is the caller's responsibility (FR-18).
 """
 
 from __future__ import annotations
 
+import os
+import re
+import subprocess
 from dataclasses import dataclass, field
+from pathlib import Path
 
-MAVEN_DEFAULT_CMD = ["mvn", "-B", "-fae", "test"]  # -fae: fail at end, don't abort early
+# -Dmaven.test.failure.ignore=true: unit-test failures are recorded in the XML reports
+# but do not abort the build, so gate goals (jacoco:check, checkstyle:check, enforce, …)
+# still execute and their pass/fail stays observable. The per-test observable reads the
+# XML, not the exit code. v0.2 gate work may move the phase to `verify`; users override
+# the whole command via .greenwash.toml (FR-30).
+MAVEN_DEFAULT_CMD = ["mvn", "-B", "-Dmaven.test.failure.ignore=true", "test"]
+
+REPORT_GLOBS = (
+    "**/target/surefire-reports/*.xml",
+    "**/target/failsafe-reports/*.xml",
+    "**/build/test-results/**/*.xml",  # Gradle
+)
+
+TIMEOUT_EXIT = 124
+
+_GOAL_RE = re.compile(r"Failed to execute goal ([\w.\-]+:[\w.\-]+:[\w.\-]+:[\w.\-]+)")
 
 
 @dataclass
@@ -28,6 +47,79 @@ class RunResult:
     report_paths: list[str] = field(default_factory=list)
     timed_out: bool = False
 
+    @property
+    def ran_tests(self) -> bool:
+        """FR-25: distinguish 'build never ran tests' from 'tests ran and failed'."""
+        return bool(self.report_paths)
 
-def run_build(workdir: str, command: list[str], *, timeout_s: int, modules: list[str] | None = None) -> RunResult:
-    raise NotImplementedError  # BUILD_PLAN.md §3 step 3
+
+def discover_reports(workdir: str, extra_globs: tuple[str, ...] = ()) -> list[str]:
+    root = Path(workdir)
+    found: set[str] = set()
+    for glob in (*REPORT_GLOBS, *extra_globs):
+        for p in root.glob(glob):
+            if p.is_file():
+                found.add(str(p))
+    return sorted(found)
+
+
+def _parse_failing_goals(output: str) -> list[str]:
+    return sorted(set(_GOAL_RE.findall(output or "")))
+
+
+def _is_maven(command: list[str]) -> bool:
+    return os.path.basename(command[0]).lower().startswith(("mvn", "mvnw"))
+
+
+def _maven_scope(command: list[str], modules: list[str] | None) -> list[str]:
+    """Append `-pl a,b -am` for Maven when specific (non-root) modules are touched (FR-17)."""
+    if not modules or not _is_maven(command):
+        return list(command)
+    scoped = sorted(m for m in modules if m and m != ".")
+    if not scoped:
+        return list(command)
+    return [*command, "-pl", ",".join(scoped), "-am"]
+
+
+def run_build(
+    workdir: str,
+    command: list[str],
+    *,
+    timeout_s: int,
+    modules: list[str] | None = None,
+    name: str = "",
+    report_globs: tuple[str, ...] = (),
+) -> RunResult:
+    argv = _maven_scope(command, modules)
+    try:
+        proc = subprocess.run(
+            argv,
+            cwd=workdir,
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+            env=os.environ.copy(),
+        )
+        output = (proc.stdout or "") + (proc.stderr or "")
+        return RunResult(
+            name=name,
+            exit_code=proc.returncode,
+            failing_goals=_parse_failing_goals(output),
+            report_paths=discover_reports(workdir, report_globs),
+            timed_out=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        partial = ""
+        for chunk in (exc.stdout, exc.stderr):
+            if chunk:
+                partial += chunk if isinstance(chunk, str) else chunk.decode("utf-8", "replace")
+        return RunResult(
+            name=name,
+            exit_code=TIMEOUT_EXIT,
+            failing_goals=_parse_failing_goals(partial),
+            report_paths=discover_reports(workdir, report_globs),
+            timed_out=True,
+        )
+    except FileNotFoundError as exc:
+        # build tool not on PATH — fail open at the CLI layer (NFR-4)
+        raise RuntimeError(f"build command not found: {argv[0]!r}") from exc

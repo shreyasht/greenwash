@@ -206,3 +206,13 @@ _Append one line per completed step. Keep newest last._
   static-analysis configs (FR-3). Per-repo overrides via glob→kind, override wins (FR-4).
   Module attribution walks up to the nearest build file (`pom.xml` / `build.gradle*`),
   id = its repo-relative dir, `.` for root (FR-6). Suite: 24 tests, 20 pass / 4 skip.
+- 2026-08-27 — step 3 done: `replay.py` — `run_build(workdir, command, *, timeout_s,
+  modules, name, report_globs)` runs a build in a worktree and returns RunResult
+  (exit_code, failing_goals, report_paths, timed_out) per FR-15. Maven default
+  `mvn -B -Dmaven.test.failure.ignore=true test` keeps gates observable through test
+  failures (FR-12). Timeout → `timed_out=True`, exit 124 (FR-16). `_maven_scope()` adds
+  `-pl a,b -am` for touched non-root modules, no-ops for non-Maven / root-only (FR-17).
+  `discover_reports()` globs surefire/failsafe/Gradle XML; `_parse_failing_goals()` pulls
+  `GAV:goal` from "Failed to execute goal" lines. `RunResult.ran_tests` for the FR-25
+  distinction. Missing build tool → RuntimeError (CLI fails open, NFR-4). Tests: pure
+  helpers + real `sleep` timeout, no Maven needed. Suite: 33 tests, 29 pass / 4 skip.
