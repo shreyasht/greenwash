@@ -199,3 +199,10 @@ _Append one line per completed step. Keep newest last._
   the `worktree()` context manager with an overlay map for file-level revert (FR-8, FR-18).
   NFR-5 property test is live and green (4 cases: worktree run, staged+unstaged diff,
   untracked warn, commit mode). Suite: 11 tests, 7 pass / 4 skip.
+- 2026-08-27 — step 2 done: `classify.py` — `classify()` returns ClassifiedPath
+  (path, kind, module, reason) per FR-1/FR-5. Test detection by build-tool root first
+  (`src/test/`, `src/integrationTest/`, `src/testFixtures/`, `src/it/`, …), filename
+  fallback for non-standard layouts (FR-2). Config = build files, CI workflows, `.mvn/`,
+  static-analysis configs (FR-3). Per-repo overrides via glob→kind, override wins (FR-4).
+  Module attribution walks up to the nearest build file (`pom.xml` / `build.gradle*`),
+  id = its repo-relative dir, `.` for root (FR-6). Suite: 24 tests, 20 pass / 4 skip.
