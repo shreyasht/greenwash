@@ -235,3 +235,11 @@ _Append one line per completed step. Keep newest last._
   reports, INCONCLUSIVE_FLAKY only when every per-test candidate was demoted and no gate
   finding survived (FR-28). Pure function, fully unit-tested. Suite: 60 tests, 56 pass /
   4 skip.
+- 2026-08-27 — step 6 done: `output.py` — `Report(headline, findings, classifications,
+  warnings, schema_version)`. `render_human()` names every test and goal (never counts),
+  groups findings by module, prints the disposition line + per-verdict summary, the
+  classification table with reasons (FR-5), and warnings (FR-31). `render_json()` emits
+  `schema_version` first, `headline_verdict` separate from the `findings` list (FR-32,
+  FR-33), plus additive `blocking` / `exit_code`; lists sorted for byte-determinism.
+  `exit_overrides` from `.greenwash.toml` flow through both. Suite: 68 tests, 64 pass /
+  4 skip.
