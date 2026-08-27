@@ -193,3 +193,9 @@ _Append one line per completed step. Keep newest last._
   NFR-5 tests skip-stubbed), v0.1 fixture dirs with SPEC.md + expected.json (repo/ and
   change.patch still todo), hooks/ stubs. `python -m unittest discover -s tests`: 8 tests,
   3 pass / 5 skip.
+- 2026-08-27 — step 1 done: `revisions.py` — `resolve()` for all three input modes
+  (FR-7), working-tree capture via `git stash create` (no stash-ref mutation),
+  `--no-renames` file-level diff (FR-10), untracked warnings (FR-9), `read_blob()`, and
+  the `worktree()` context manager with an overlay map for file-level revert (FR-8, FR-18).
+  NFR-5 property test is live and green (4 cases: worktree run, staged+unstaged diff,
+  untracked warn, commit mode). Suite: 11 tests, 7 pass / 4 skip.
