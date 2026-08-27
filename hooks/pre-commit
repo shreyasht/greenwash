@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# greenwash pre-commit hook (FR-35). Verifies the staged change before it enters history.
+# Stub — implemented at BUILD_PLAN.md §3 step 11.
+#
+# Install: ln -s ../../hooks/pre-commit .git/hooks/pre-commit
+#
+# Must fail open (NFR-4): a greenwash internal error must not block the commit.
+
+echo "greenwash pre-commit hook: not implemented yet" >&2
+exit 0
