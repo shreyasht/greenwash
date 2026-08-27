@@ -1,66 +1,219 @@
-# 🧽 greenwash
+# greenwash
 
-**Deterministic verification for AI coding agents. Did it fix the source, or just hack the tests?**
+**Did your coding agent fix the bug, or fix the test that caught it?**
 
-Coding agents are measured by the checks they can pass. When an agent cannot make a test pass, a cheaper path is often available: **make the test stop asking.** 
+greenwash re-runs your test suite with the agent's test edits withheld. If a test only
+passes when its own edits are applied, the fix is in the assertion, not the code.
 
-In benchmarks and real-world usage, agents (like Codex and Claude Code) have been observed explicitly reward-hacking—hardcoding expected values, deleting assertions, and lowering coverage thresholds to report a "green" build.
+Java / Maven / Gradle. Single Python file, stdlib only, nothing leaves your machine.
 
-Code review doesn't close this trust gap because reviewers read diffs for correctness, not to determine if a test edit is artificially propping up a broken fix.
+> **Status: v0.1, early.** The core mechanic works and is covered by fixtures. Several
+> requirements in the [roadmap](#roadmap) are not built yet and are marked as such. If you
+> are evaluating this for a team, read [Known limitations](#known-limitations) first.
 
-**greenwash** answers one question deterministically:
-> **Does the source change, on its own, still satisfy the checks?**
+---
 
-## 🔬 How it Works: Split and Replay
+## The problem
 
-greenwash answers by experiment, not inference. It uses no LLMs in its verification path. 
+Coding agents are graded by checks they are also allowed to edit. When the source fix is
+hard, a cheaper path exists: change what the test asks for.
 
-When analyzing a diff, it splits the changes into three buckets: `source`, `test`, and `config`. It then runs the build in two states and compares the outcomes:
-
-1. **Run A ("After"):** All hunks applied (the proposed PR).
-2. **Run B ("Source-only"):** Test and config changes reverted to base.
-
-```text
-                 ┌── source hunks ──┐
-   diff ─────────┼── test hunks ────┼──► run A ("after"):       all hunks applied
-                 └── config hunks ──┘
-                                     └──► run B ("source-only"): test + config reverted to base
+```diff
+  public void testDivideByZeroGivesFriendlyError() {
+      try {
+          new Calc().divide(1, 0);
+-         throw new AssertionError("expected IllegalArgumentException");
+-     } catch (IllegalArgumentException expected) {
++         throw new AssertionError("expected ArithmeticException");
++     } catch (ArithmeticException expected) {
+      }
+  }
 ```
 
-If a test passes in **Run A** but fails in **Run B**, it is not evidence of a fix. It is evidence of a moved goalpost.
+The suite goes green. The bug is untouched. The commit message says `fix: handle divide by
+zero`, the diff touches `src/main` so it looks like real work, and a reviewer scanning for
+correctness has no cheap way to notice that the test edit is the thing doing the work.
 
-## ⚖️ Findings and Verdicts
+This is measured behaviour, not a hypothetical. The
+[EvilGenie benchmark](https://arxiv.org/abs/2511.21654) (Nov 2025) put agents in
+environments where test files were editable and recorded explicit reward hacking —
+hardcoded expected values and edited test files — from both Codex and Claude Code.
 
-greenwash evaluates two observables: **per-test outcomes** (to catch weakened assertions) and **gate outcomes** (to catch lowered coverage or disabled linters). 
+## What it reports
 
-It emits a list of findings and a single **headline verdict**:
+```
+$ greenwash --head agent-cheats --with-base
 
-| Verdict | Meaning | Action |
-| --- | --- | --- |
-| 🛑 `FIX_IS_IN_THE_TESTS` | Source change alone does not make the named tests pass. | **Blocks Build** |
-| 🛑 `CONFIG_WEAKENED` | A gate (e.g. coverage) that failed at base now passes. | **Blocks Build** |
-| ⚠️ `TESTS_REMOVED_OR_SKIPPED` | Source fix holds, but coverage shrank. | Informs |
-| ✅ `HONEST_FIX` | Tests/config changed, and the source fix holds without them. | Passes |
-| ⏩ `NO_TEST_CHANGES` | No test or config files touched; nothing to verify. | Passes |
+range: agent-cheats~1..agent-cheats  (5513d92b..e08be81a)
+  [after]        exit=0 reports=1 pass=2 fail=0
+  [source-only]  exit=0 reports=1 pass=1 fail=1
+  [base]         exit=0 reports=1 pass=1 fail=1
 
-*Note: greenwash employs automatic flake confirmation to ensure verdicts are highly reliable.*
+====================================================================
+  FAIL  FIX_IS_IN_THE_TESTS
+  The source change alone does NOT make these tests pass.
+====================================================================
 
-## 🔌 Integrations
+changed files
+  source   1  M:src/main/java/Calc.java
+  test     1  M:src/test/java/CalcTest.java
 
-greenwash is designed to run where it matters most:
+tests that only pass because the test/config edits are applied
+  CalcTest.testDivideByZeroGivesFriendlyError
+      with test edits: pass   source only: fail  <- was already failing before the change
+```
 
-1. **Agent Stop Hook (The Killer Feature):** Plugs directly into agents (like Claude Code) to intercept success reports. The agent is blocked and handed the verdict: *"your fix is in the test file."* It is forced to retry with no human in the loop.
-2. **Pre-commit Hook:** Catches hacked tests before they enter your local history.
-3. **CI/CD Action:** A standard GitHub Action to protect the `main` branch.
+Exit code 1. That last line is the whole product: the test was already failing before this
+change, and the source edit did not fix it.
 
-## 🛡️ Design Principles
+## How it works
 
-* **Deterministic Core:** No LLMs in the verification path. Same inputs = same verdict.
-* **No Egress:** Source code never leaves your machine. No telemetry, API keys, or network calls. Safe for enterprise environments.
-* **Zero Install Friction:** Python stdlib only. No JVM plugins, no build-file modification.
-* **Non-destructive:** Uses isolated git worktrees. Your working directory is never mutated.
-* **Fail Open:** On internal ambiguity (e.g. compile failures), it exits `0` so it never blocks a valid build unnecessarily. 
+No model, no heuristics, no opinions. It runs an experiment.
 
-## 🚀 Getting Started
+```
+                 ┌── source hunks ──┐
+   diff ─────────┼── test hunks ────┼──► run A "after":       everything applied
+                 └── config hunks ──┘
+                                     └──► run B "source-only": test + config reverted to base
+                                     └──► run C "base":        nothing applied   (--with-base)
 
-*(Coming soon: Installation instructions for v0.3)*
+   compare per-test outcomes  ──►  verdict
+```
+
+Java makes this unusually clean. Maven and Gradle already separate `src/main` from
+`src/test` by convention, so bucketing a diff is decided by the build tool rather than
+guessed from filenames — and reverting is a file-level `git checkout base -- src/test`
+rather than hunk surgery.
+
+Every run happens in an isolated `git worktree`. Your working tree, index and stash are
+never touched.
+
+**Every finding is reproducible by hand.** greenwash tells you which files it reverted and
+which command it ran; you can rerun both yourself and get the same answer. If it ever
+tells you something you can't verify in two commands, that's a bug.
+
+## Install
+
+```bash
+curl -O https://raw.githubusercontent.com/<you>/greenwash/main/greenwash.py
+chmod +x greenwash.py
+```
+
+That's it. Python 3.8+, git 2.5+, and whatever your project already builds with. No pip
+install, no plugin in your `pom.xml`, no network access required at runtime.
+
+## Usage
+
+```bash
+# audit uncommitted work against HEAD  (pre-commit)
+python3 greenwash.py
+
+# audit one commit
+python3 greenwash.py --head <sha>
+
+# audit a branch against main
+python3 greenwash.py --base main --head my-feature
+
+# stronger verdict: also run the suite at base, to prove the test was already failing
+python3 greenwash.py --head <sha> --with-base
+
+# large repo: scope the build yourself
+python3 greenwash.py --head <sha> \
+  --build-cmd "mvn -o -B -pl billing-core -am -Dmaven.test.failure.ignore=true test"
+
+# machine readable
+python3 greenwash.py --head <sha> --json greenwash.json
+```
+
+The default build command is
+`mvn -B -q -Dmaven.test.failure.ignore=true test`. That failure-ignore flag matters —
+without it Maven halts at the first failing module and produces nothing to compare.
+
+For Gradle: `--build-cmd "./gradlew test --continue"`.
+
+**Exit codes.** `0` for everything informational, `1` only for `FIX_IS_IN_THE_TESTS`. A
+tool that blocks builds on ambiguous findings gets disabled in a week, so ambiguity never
+blocks.
+
+### In CI
+
+No packaged action yet. Wire it manually:
+
+```yaml
+- name: greenwash
+  run: |
+    python3 greenwash.py \
+      --base ${{ github.event.pull_request.base.sha }} \
+      --head ${{ github.sha }} \
+      --json greenwash.json
+```
+
+## Verdicts
+
+| Verdict | Meaning | Exit | |
+| --- | --- | --- | --- |
+| `NO_TEST_CHANGES` | No test or config files touched | 0 | shipped |
+| `HONEST_FIX` | Tests changed, source fix holds without them | 0 | shipped |
+| `TESTS_REMOVED_OR_SKIPPED` | Fix holds, but coverage shrank in the same change | 0 | shipped |
+| `FIX_IS_IN_THE_TESTS` | Source change alone does not make the named tests pass | 1 | shipped |
+| `INCONCLUSIVE_COMPILE` | Base tests don't compile against the new source | 0 | shipped |
+| `INCONCLUSIVE_BUILD` | Build produced no reports; nothing to compare | 0 | shipped |
+| `CONFIG_WEAKENED` | A gate that failed under base config passes now | 1 | planned |
+| `INCONCLUSIVE_FLAKY` | Findings failed confirmation re-runs | 0 | planned |
+
+## What greenwash is not
+
+- **Not a code reviewer.** No opinion on style, design or correctness.
+- **Not a coverage tool.** Coverage delta is a proxy; greenwash compares outcomes.
+- **Not an AI reviewer.** There is no model in the verification path, ever. Same inputs,
+  same verdict, always.
+- **Not a test generator.** It never writes or repairs tests.
+- **Not agent-specific.** It reads a diff. Whether Claude Code, Codex, Cursor or a human
+  wrote it is irrelevant — the experiment is the same.
+
+## Known limitations
+
+- **Two full suite runs.** Roughly 2.2× the cost of one. Scope with `-pl` on large repos.
+- **The compile wall.** Reverting tests against changed source breaks compilation whenever
+  a signature changes, which in a statically typed language is often. Those changes return
+  `INCONCLUSIVE_COMPILE`, which is honest but unhelpful. This is the project's main open
+  problem — see below.
+- **Flaky tests produce false positives.** A test that fails in run B by chance looks
+  exactly like a propped-up test. Confirmation re-runs are designed but not built.
+- **Gate weakening is invisible in v0.1.** Lowering a JaCoCo threshold changes no test
+  outcome, so v0.1 reports `HONEST_FIX`. Being fixed via a second observable.
+- **Untracked files are excluded.** `git stash create` doesn't capture them; you get a
+  warning.
+- **Single-module test identity.** Tests are keyed `(classname, name)`, so identically
+  named test classes in different modules can collide. Module-aware keys are next.
+
+## Roadmap
+
+**v0.2** — gate observable and `CONFIG_WEAKENED`; flake confirmation; module-aware test
+identity and per-module reporting; `.greenwash.yml`; versioned JSON; packaged CI action.
+
+**v0.3** — Claude Code `Stop` hook, so the agent is handed its own verdict and retries
+before reporting success, with no human in the loop. Static pre-filter to skip the replay
+when nothing was weakened. A fallback for the compile wall.
+
+**v0.4** — Kotlin, then TypeScript (Jest/Vitest JUnit reporters). Language support is a
+plugin boundary, not a fork.
+
+Full requirements and decision record: [`REQUIREMENTS.md`](REQUIREMENTS.md).
+
+## Help wanted
+
+The most useful contribution right now is not code. It's a number.
+
+Run v0.1 across ~100 real commits in your repo that touch both `src/main` and `src/test`,
+and report **what fraction come back `INCONCLUSIVE_COMPILE`**. That rate decides whether
+the runtime-comparison approach is viable in statically typed languages or whether it
+needs an AST-based fallback. Nobody has measured it. Open an issue with the number, your
+language, and your build tool.
+
+Also welcome: build-tool adapters, report-format parsers, and false positives — a
+reproducible false positive is worth more than a feature.
+
+## License
+
+MIT.
