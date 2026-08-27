@@ -216,3 +216,13 @@ _Append one line per completed step. Keep newest last._
   `GAV:goal` from "Failed to execute goal" lines. `RunResult.ran_tests` for the FR-25
   distinction. Missing build tool → RuntimeError (CLI fails open, NFR-4). Tests: pure
   helpers + real `sleep` timeout, no Maven needed. Suite: 33 tests, 29 pass / 4 skip.
+- 2026-08-27 — step 4 done: `reports.py` — `parse_reports(paths, workdir)` parses
+  Surefire/Failsafe/Gradle JUnit XML (handles `<testsuites>` wrapper, malformed files
+  ignored) into `{TestKey(module, classname, name): Outcome}`; module derived from the
+  `/target/` or `/build/` segment of the report path (FR-19, FR-20). `compare(after,
+  source_only)` emits candidate findings: FIX_IS_IN_THE_TESTS (A pass / B fail, FR-21),
+  TESTS_REMOVED_OR_SKIPPED for newly-skipped and vanished tests with probable-rename
+  labelling (FR-23), suppressed when a side never ran tests (FR-25). `compare_gates(A, B)`
+  emits CONFIG_WEAKENED for a goal failing at base but not after (FR-22) — full config-
+  revert replay wiring is step 8. Candidates still pass through flake confirmation.
+  Suite: 45 tests, 41 pass / 4 skip.
