@@ -1,6 +1,8 @@
 # greenwash — Agentic Build Plan
 
-**Status:** not started (repo has REQUIREMENTS_1.md, README.md, LICENSE only)
+**Status:** steps 1-14 code-complete, green on CI (branch `scaffold-v0.1`, not yet
+merged). Outstanding: the two human measurements in §4 (§9 INCONCLUSIVE_COMPILE rate,
+NFR-6 false-positive budget), which gate finalising step 14 and the v0.4 release claims.
 **Purpose:** drive the v0.1 → v0.3 implementation with a coding agent, from
 `REQUIREMENTS_1.md`, without the agent drifting off-spec or hacking its own tests.
 **Last updated:** 2026-08-27
