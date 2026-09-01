@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "greenwash"
+version = "0.3.0"
+description = "Deterministic verification for AI coding agents: did it fix the source, or just hack the tests?"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+dependencies = []  # stdlib only (NFR-3)
+
+[project.scripts]
+greenwash = "greenwash.cli:_console"
+
+[project.urls]
+Homepage = "https://github.com/shreyasht/greenwash"
+
+[tool.setuptools]
+packages = ["greenwash"]

@@ -1,10 +1,27 @@
 #!/usr/bin/env bash
-# greenwash pre-commit hook (FR-35). Verifies the staged change before it enters history.
-# Stub — implemented at BUILD_PLAN.md §3 step 11.
+# greenwash pre-commit hook (FR-35). Verifies the working tree before the commit lands.
 #
-# Install: ln -s ../../hooks/pre-commit .git/hooks/pre-commit
+# Install (from the repo you want to guard):
+#   pip install "git+https://github.com/shreyasht/greenwash@main"
+#   ln -s ../../hooks/pre-commit .git/hooks/pre-commit   # or copy it
 #
-# Must fail open (NFR-4): a greenwash internal error must not block the commit.
+# greenwash working-tree mode captures staged + unstaged tracked changes. It blocks the
+# commit only on FIX_IS_IN_THE_TESTS or CONFIG_WEAKENED (exit 1); every other verdict is
+# informational. Any internal greenwash error exits 0 (NFR-4), so this hook never wedges
+# a commit on its own.
 
-echo "greenwash pre-commit hook: not implemented yet" >&2
-exit 0
+if ! command -v greenwash >/dev/null 2>&1; then
+  echo "greenwash not installed; skipping pre-commit verification" >&2
+  exit 0
+fi
+
+greenwash
+status=$?
+
+if [ "$status" -ne 0 ]; then
+  echo >&2
+  echo "greenwash blocked this commit. Re-run 'greenwash' for the full report, or" >&2
+  echo "'git commit --no-verify' to override." >&2
+fi
+
+exit "$status"

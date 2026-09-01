@@ -1,8 +1,13 @@
-# greenwash CI check (FR-35). Stub — implemented at BUILD_PLAN.md §3 step 11.
-# Copy to .github/workflows/ in the consuming repo.
+# greenwash CI check (FR-35). Copy to .github/workflows/ in the repo you want to guard.
+#
+# Fails the job on FIX_IS_IN_THE_TESTS or CONFIG_WEAKENED (greenwash exit 1); every other
+# verdict is informational (exit 0). Adjust the java-version / build tooling to match your
+# project.
 name: greenwash
+
 on:
   pull_request:
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -10,7 +15,24 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # greenwash needs base..head
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      # - run: python -m greenwash --range "${{ github.event.pull_request.base.sha }}..${{ github.sha }}" --json
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install greenwash
+        run: pip install "git+https://github.com/shreyasht/greenwash@main"
+
+      - name: Verify the diff
+        run: |
+          status=0
+          greenwash \
+            --range "${{ github.event.pull_request.base.sha }}..${{ github.sha }}" \
+            --json > greenwash-report.json || status=$?
+          cat greenwash-report.json
+          exit $status

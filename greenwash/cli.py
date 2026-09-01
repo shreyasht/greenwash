@@ -59,3 +59,8 @@ def main(argv: list[str]) -> int:
     except Exception as exc:  # NFR-4: fail open
         print(f"greenwash: internal error, exiting 0 without a verdict: {exc}", file=sys.stderr)
         return 0
+
+
+def _console() -> None:
+    """Entry point for the installed `greenwash` command."""
+    sys.exit(main(sys.argv[1:]))
