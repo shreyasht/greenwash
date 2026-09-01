@@ -1,13 +1,35 @@
 # Claude Code Stop hook (FR-36)
 
-A `Stop` hook that runs greenwash on the working-tree diff when the agent tries to end its
-turn.
+The differentiating integration (§10 surface 3): greenwash runs inside the agent's
+completion loop. On `FIX_IS_IN_THE_TESTS` or `CONFIG_WEAKENED` the agent is blocked from
+ending its turn and handed the verdict, so it retries with no human involved.
 
-- Blocking verdict (`FIX_IS_IN_THE_TESTS`, `CONFIG_WEAKENED`): the hook blocks the stop
-  and returns the verdict text to the agent (e.g. *"your fix is in the test file"*), so it
-  self-corrects before reporting success.
-- Anything else: silent, agent proceeds.
-- Fail open (NFR-4): any error in the hook lets the agent stop normally.
+## Install
 
-To be implemented at `BUILD_PLAN.md` §3 step 12. Ship as a documented
-`settings.json` hook snippet plus the wrapper script it calls.
+```
+pip install "git+https://github.com/shreyasht/greenwash@main"
+```
+
+This provides the `greenwash-stop-hook` command. Add it to the guarded project's
+`.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "greenwash-stop-hook" } ] }
+    ]
+  }
+}
+```
+
+## Behaviour
+
+- Reads the Stop-hook JSON on stdin, runs `greenwash --json` in the agent's `cwd`.
+- Blocking verdict → prints `{"decision": "block", "reason": "..."}` and exits 0; Claude
+  Code shows `reason` to the agent and it keeps working.
+- Any other verdict, a greenwash error, or `stop_hook_active` already set → exits 0
+  silently and the agent stops (NFR-4 fail open; never blocks twice in a turn).
+- `GREENWASH_HOOK_TIMEOUT` (seconds, default 1800) caps the two build runs.
+
+The decision logic is `greenwash.stophook.evaluate`; this directory only documents it.

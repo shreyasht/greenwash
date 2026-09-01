@@ -14,11 +14,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from greenwash import classify, flake, replay, reports, revisions
+from greenwash import classify, flake, replay, reports, revisions, strictness
 from greenwash.classify import Kind
 from greenwash.config import Config
 from greenwash.output import Report
-from greenwash.verdict import Verdict, resolve
+from greenwash.verdict import Finding, Verdict, resolve
 
 
 @dataclass
@@ -30,6 +30,7 @@ class Options:
     timeout_s: int | None = None
     confirm_count: int | None = None
     confirm_mode: str | None = None
+    prefilter: bool | None = None
     keep: bool = False
 
 
@@ -75,6 +76,25 @@ def verify(options: Options, config: Config) -> Report:
             test_or_config_changed=False, per_test_findings=[], gate_findings=[],
         )
         return Report(head, findings, classifications, warnings)
+
+    diffs = revisions.unified_diff(
+        repo_root, spec.base_ref, spec.head_ref, [c.path for c in testish]
+    )
+
+    prefilter = options.prefilter if options.prefilter is not None else config.prefilter
+    if prefilter:
+        analysis = strictness.analyse(
+            [(c.path, c.kind.value, diffs.get(c.path, "")) for c in testish]
+        )
+        if not analysis["weakened_paths"] and not analysis["unrecognised"]:
+            warnings.append(
+                "replay skipped: the test/config changes show no strictness reduction "
+                "under static analysis (--no-prefilter forces the replay)"
+            )
+            findings, head = resolve(
+                test_or_config_changed=True, per_test_findings=[], gate_findings=[],
+            )
+            return Report(head, findings, classifications, warnings)
 
     command = (
         options.build_command
@@ -170,4 +190,26 @@ def verify(options: Options, config: Config) -> Report:
         source_only_compiled=not b_result.compile_failed,
         source_only_ran_tests=b_result.ran_tests,
     )
+
+    # Compile-wall fallback (§9, step 14 — candidate, pending the INCONCLUSIVE_COMPILE-rate
+    # measurement): when the per-test comparison is impossible, attach the *suspected*
+    # weakenings from static analysis. Informational only — not reproducible by two build
+    # commands, so it never blocks (§5 blocking rule).
+    if head is Verdict.INCONCLUSIVE_COMPILE:
+        analysis = strictness.analyse([
+            (c.path, c.kind.value, diffs.get(c.path, "")) for c in testish if c.kind is Kind.TEST
+        ])
+        module_of = {c.path: c.module for c in testish}
+        for path, reasons in analysis["signals"].items():
+            findings.append(Finding(Verdict.INCONCLUSIVE_COMPILE, module_of.get(path, "."), {
+                "path": path,
+                "suspected_weakening": reasons,
+                "evidence": "static heuristic on the diff, not verified by replay (§9)",
+            }))
+        if analysis["signals"]:
+            warnings.append(
+                "base tests do not compile against the new source; the findings above are "
+                "static heuristics, not experimental results (§9 fallback)"
+            )
+
     return Report(head, findings, classifications, warnings)

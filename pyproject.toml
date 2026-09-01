@@ -13,6 +13,7 @@ dependencies = []  # stdlib only (NFR-3)
 
 [project.scripts]
 greenwash = "greenwash.cli:_console"
+greenwash-stop-hook = "greenwash.stophook:_console"
 
 [project.urls]
 Homepage = "https://github.com/shreyasht/greenwash"

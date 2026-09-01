@@ -159,6 +159,10 @@ the agent can build the measurement harness but a human picks the corpus and rea
 Also required: NFR-6 false-positive budget — `FIX_IS_IN_THE_TESTS` + `CONFIG_WEAKENED`
 together ≤2% false positives on ≥200 human-authored commits.
 
+**Status:** neither measurement has been run. Step 14's fallback ships as non-blocking
+heuristic enrichment only; it stays that way until the INCONCLUSIVE_COMPILE rate is
+known. All other steps (1-13) are code-complete and green on CI.
+
 ---
 
 ## 5. The Stop hook (FR-36 / §10 surface 3)
@@ -296,4 +300,28 @@ _Append one line per completed step. Keep newest last._
   its own `.greenwash.toml` for `mvn verify`); `test_fixtures.py` now loads each
   fixture's config. Gate-finding module attribution is still `.` — multi-module mapping
   is step 10. Suite: 95 tests, 90 pass / 5 skip (Maven fixtures).
-  Next: step 10 (multi-module) or step 11 (Gradle paths, GH Action, pre-commit).
+- 2026-09-01 — steps 10-14:
+  - **10 multi-module:** probable-move labelling (open Q1) distinct from probable-rename;
+    `_gate_module` derives a module from a Gradle task path. Maven reactor fixture
+    `multi-module` (finding attributed to `svc-a`, `svc-b`'s same-named class never
+    cross-compared). Maven gate→module still `.` (needs pom parsing).
+  - **11 packaging/interfaces:** `pyproject.toml` (pip-installable, stdlib only, console
+    scripts `greenwash` + `greenwash-stop-hook`). Real `hooks/github-actions/greenwash.yml`
+    and `hooks/pre-commit`. `test_config.py` round-trip, `test_json_contract.py` pins the
+    schema-1 shape. setup-java@v5.
+  - **12 Stop hook (FR-36):** `greenwash/stophook.py` — `evaluate(report, stop_hook_active)`
+    returns the Claude Code `block` decision on a blocking verdict (never twice a turn),
+    else None; `main()` fail-open. `test_stop_hook.py`.
+  - **13 static pre-filter (§4.1):** `greenwash/strictness.py` — `analyse()` reports
+    weakening signals (disabled test, assertion removed/changed, threshold decreased,
+    rule block removed, continue-on-error) and separately the files it cannot read.
+    `orchestrate` skips the replay only when opted in (`--prefilter` / `prefilter=true`)
+    AND every changed file is analysable AND none weakened → HONEST_FIX + a loud warning.
+    Opt-in, not default: a skipped replay is a false-negative risk and fixtures must keep
+    exercising the real replay.
+  - **14 compile-wall fallback (§9) — CANDIDATE, not final:** on INCONCLUSIVE_COMPILE,
+    orchestrate attaches the suspected weakenings from `strictness` as informational
+    findings tagged "static heuristic, not verified by replay". Non-blocking (§5). The
+    full design (promote to a real verdict? AST vs diff?) is still gated on the §9
+    INCONCLUSIVE_COMPILE-rate measurement below.
+  Suite: 129 tests, 123 pass / 6 skip (Maven fixtures).

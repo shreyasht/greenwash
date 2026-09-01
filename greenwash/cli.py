@@ -28,6 +28,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="flake confirmation re-runs per side (FR-26; 0 disables)")
     p.add_argument("--confirm-mode", choices=["isolated", "full"], default=None,
                    help="confirm candidate tests in isolation or via the full suite (FR-29)")
+    p.add_argument("--prefilter", action=argparse.BooleanOptionalAction, default=None,
+                   help="skip the replay when the test/config changes show no strictness "
+                        "reduction under static analysis (§4.1)")
     p.add_argument("--json", action="store_true", help="emit the machine-readable report")
     p.add_argument("--keep", action="store_true", help="do not delete worktrees (FR-18)")
     return p
@@ -46,6 +49,7 @@ def run(argv: list[str]) -> int:
         timeout_s=args.timeout,
         confirm_count=args.confirm_count,
         confirm_mode=args.confirm_mode,
+        prefilter=args.prefilter,
         keep=args.keep,
     )
     report = orchestrate.verify(options, config)

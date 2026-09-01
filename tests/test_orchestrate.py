@@ -32,13 +32,18 @@ first_build = True
 if counter:
     first_build = not os.path.exists(counter)
     open(counter, "a").write("x")
+cases = json.load(open("cases.json"))
+missing = [c.get("fn", "add") for c in cases if c.get("fn", "add") not in ns]
+if missing:
+    print("COMPILATION ERROR: cannot find symbol: " + missing[0])
+    sys.exit(1)
 rows, passed, total = [], 0, 0
-for c in json.load(open("cases.json")):
+for c in cases:
     total += 1
     if c.get("flaky"):
         ok = first_build
     else:
-        ok = ns["add"](c["a"], c["b"]) == c["expected"]
+        ok = ns[c.get("fn", "add")](c["a"], c["b"]) == c["expected"]
     passed += 1 if ok else 0
     tag = "" if ok else '<failure message="x"/>'
     rows.append('<testcase name="' + c["name"] + '" classname="calc.CalcTest">' + tag + '</testcase>')
@@ -138,6 +143,33 @@ class OrchestrateTest(unittest.TestCase):
         r = verify(Options(repo_root=root, commit=sha), cfg)
         self.assertEqual(r.headline, Verdict.CONFIG_WEAKENED)
         self.assertIn("coverageCheck", str(r.findings[0].detail))
+
+    def test_prefilter_skips_when_only_strengthening(self):
+        extra = ("package x;\nimport org.junit.jupiter.api.Test;\n"
+                 "import static org.junit.jupiter.api.Assertions.assertEquals;\n"
+                 "class ExtraTest {\n  @Test void e() { assertEquals(1, 1); }\n}\n")
+        root, sha = self._repo(self._b(BUG, ONE), {**self._b(BUG, ONE), "ExtraTest.java": extra})
+        cfg = Config(build_command=["false"], classification_overrides=OVERRIDES, prefilter=True)
+        r = verify(Options(repo_root=root, commit=sha), cfg)
+        self.assertEqual(r.headline, Verdict.HONEST_FIX)   # "false" would give INCONCLUSIVE_BUILD
+        self.assertTrue(any("replay skipped" in w for w in r.warnings))
+
+    def test_prefilter_does_not_skip_an_unrecognised_test_file(self):
+        # cases.json cannot be statically cleared, so the replay still runs
+        root, sha = self._repo(self._b(BUG, ONE), self._b(BUG, ONE_HACKED))
+        cfg = Config(build_command=BUILD_CMD, classification_overrides=OVERRIDES, prefilter=True)
+        r = verify(Options(repo_root=root, commit=sha), cfg)
+        self.assertEqual(r.headline, Verdict.FIX_IS_IN_THE_TESTS)
+
+    def test_compile_wall_is_inconclusive_with_heuristic_note(self):
+        base = {"runtests.py": RUNTESTS, "calc.py": "def add(a, b):\n    return a\n",
+                "cases.json": json.dumps([{"name": "t", "fn": "add", "a": 2, "b": 3, "expected": 5}])}
+        head = {"runtests.py": RUNTESTS, "calc.py": "def plus(a, b):\n    return a + b\n",
+                "cases.json": json.dumps([{"name": "t", "fn": "plus", "a": 2, "b": 3, "expected": 5}])}
+        root, sha = self._repo(base, head)
+        cfg = Config(build_command=BUILD_CMD, classification_overrides=OVERRIDES)
+        r = verify(Options(repo_root=root, commit=sha), cfg)
+        self.assertEqual(r.headline, Verdict.INCONCLUSIVE_COMPILE)
 
     def test_flaky_candidate_is_demoted(self):
         counter_dir = tempfile.mkdtemp(prefix="gw-flaky-")

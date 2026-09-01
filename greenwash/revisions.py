@@ -112,6 +112,18 @@ def _untracked(repo_root: str) -> list[str]:
     return sorted(p for p in out.split("\0") if p)
 
 
+def unified_diff(repo_root: str, base_ref: str, head_ref: str, paths: list[str]) -> dict[str, str]:
+    """Zero-context unified diff per path — just the changed lines, for the static
+    strictness pre-filter (§4.1) and the compile-wall fallback (§9)."""
+    out: dict[str, str] = {}
+    for path in paths:
+        out[path] = _git(
+            repo_root, "diff", "--no-color", "--no-renames", "-U0",
+            base_ref, head_ref, "--", path,
+        )
+    return out
+
+
 def resolve(repo_root: str, *, range_spec: str | None = None, commit: str | None = None) -> DiffSpec:
     """Build a DiffSpec for one of the three input modes (FR-7)."""
     if range_spec and commit:

@@ -46,6 +46,8 @@ def _finding_subject(f: Finding) -> str:
         return str(d["goal"])
     if "classname" in d and "name" in d:
         return f"{d['classname']}.{d['name']}"
+    if "path" in d:
+        return str(d["path"])
     return d.get("reason", f.verdict.value)
 
 
@@ -57,6 +59,8 @@ def _finding_explanation(f: Finding) -> str:
         return "fails under the base config, passes under the new config"
     if f.verdict is Verdict.TESTS_REMOVED_OR_SKIPPED:
         return str(d.get("reason", "coverage shrank"))
+    if "suspected_weakening" in d:
+        return "; ".join(d["suspected_weakening"]) + "  [" + str(d.get("evidence", "")) + "]"
     return str(d.get("reason", ""))
 
 

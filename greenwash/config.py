@@ -25,6 +25,7 @@ class Config:
     confirm_mode: str = "isolated"
     module_scope: bool = True
     timeout_s: int = 1800
+    prefilter: bool = False  # §8 v0.3: skip the replay when no strictness reduction is seen
     exit_overrides: dict[str, int] = field(default_factory=dict)
 
 
@@ -53,5 +54,6 @@ def load(repo_root: str) -> Config:
         confirm_mode=str(data.get("confirm_mode", defaults.confirm_mode)),
         module_scope=bool(data.get("module_scope", defaults.module_scope)),
         timeout_s=int(data.get("timeout_s", defaults.timeout_s)),
+        prefilter=bool(data.get("prefilter", defaults.prefilter)),
         exit_overrides={str(k): int(v) for k, v in data.get("exit_overrides", {}).items()},
     )
