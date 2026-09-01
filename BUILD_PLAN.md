@@ -235,6 +235,8 @@ _Append one line per completed step. Keep newest last._
   reports, INCONCLUSIVE_FLAKY only when every per-test candidate was demoted and no gate
   finding survived (FR-28). Pure function, fully unit-tested. Suite: 60 tests, 56 pass /
   4 skip.
+  (An `orchestrate.py` module was added beyond §2's list to hold the split-and-replay
+  experiment; `cli.py` stays a thin arg-parse + fail-open shell.)
 - 2026-08-27 — step 6 done: `output.py` — `Report(headline, findings, classifications,
   warnings, schema_version)`. `render_human()` names every test and goal (never counts),
   groups findings by module, prints the disposition line + per-verdict summary, the
@@ -243,3 +245,15 @@ _Append one line per completed step. Keep newest last._
   FR-33), plus additive `blocking` / `exit_code`; lists sorted for byte-determinism.
   `exit_overrides` from `.greenwash.toml` flow through both. Suite: 68 tests, 64 pass /
   4 skip.
+- 2026-09-01 — step 7 done: **v0.1 converges.** `config.py` loads `.greenwash.toml`
+  (`tomllib`, all keys optional, string-or-list build command). `replay.py` gains
+  `RunResult.compile_failed` (§9). `orchestrate.py` runs the experiment: resolve →
+  classify → skip if no test/config touched (FR-13) → run A (head) and run B (head with
+  test/config paths overlaid to base content) in worktrees → `compare` + `compare_gates`
+  → `verdict.resolve`. `cli.py` wired: `--range` / `--commit` / working-tree, `--json`,
+  `--keep`, exit codes with config overrides, fail-open wrapper. Hermetic
+  `tests/test_orchestrate.py` drives all four verdicts + non-destructive + CLI exit
+  through a stdlib fake build (no JVM). v0.1 Maven `fixtures/` rebuilt as base/ + head/
+  trees with `tests/test_fixtures.py` running greenwash for real (skipped locally without
+  `mvn`, run in CI via `.github/workflows/ci.yml`). Suite: 74 tests, 70 pass / 4 skip
+  (the Maven fixtures).

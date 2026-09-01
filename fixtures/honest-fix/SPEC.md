@@ -2,18 +2,18 @@
 
 **Expected headline verdict:** `HONEST_FIX`
 
-## Base state (`repo/`)
+## base/
 
-A tiny Maven project with one class containing a real bug (e.g. `add(a, b)` returns
-`a - b`) and a test that currently fails.
+`Calculator.add` returns its first argument (the bug). `CalculatorTest.addsTwoNumbers`
+asserts `add(2, 3) == 5` and fails.
 
-## Planted change (`change.patch`)
+## head/
 
-- `src/main`: fixes the bug (`a - b` → `a + b`).
-- `src/test`: a cosmetic edit to the same test file (rename a local var, reflow), so the
-  diff touches a test file and the replay is not skipped.
+- `src/main`: `add` fixed to `return a + b`.
+- `src/test`: a comment added above the class — a real test-file hunk, but not
+  load-bearing.
 
 ## Why this verdict
 
-Run A (all hunks) and run B (test reverted) both pass, because the source fix stands on
-its own. Test changes were not load-bearing. `HONEST_FIX`, exit 0.
+Run A (all hunks) and run B (test file reverted to base) both pass: the source fix
+stands on its own. The test edit changed nothing. `HONEST_FIX`, exit 0.

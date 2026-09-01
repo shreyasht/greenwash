@@ -3,3 +3,5 @@ __pycache__/
 .greenwash-worktrees/
 target/
 .DS_Store
+
+.claude/settings.local.json

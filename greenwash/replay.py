@@ -37,6 +37,10 @@ REPORT_GLOBS = (
 TIMEOUT_EXIT = 124
 
 _GOAL_RE = re.compile(r"Failed to execute goal ([\w.\-]+:[\w.\-]+:[\w.\-]+:[\w.\-]+)")
+_COMPILE_FAIL_RE = re.compile(
+    r"COMPILATION ERROR|BUILD FAILED.*compileTest|compileTest\w*\s+FAILED|"
+    r"cannot find symbol|error: .* is not abstract",
+)
 
 
 @dataclass
@@ -46,6 +50,7 @@ class RunResult:
     failing_goals: list[str] = field(default_factory=list)
     report_paths: list[str] = field(default_factory=list)
     timed_out: bool = False
+    compile_failed: bool = False  # §9 compile wall — base tests won't compile vs new source
 
     @property
     def ran_tests(self) -> bool:
@@ -101,12 +106,14 @@ def run_build(
             env=os.environ.copy(),
         )
         output = (proc.stdout or "") + (proc.stderr or "")
+        reports = discover_reports(workdir, report_globs)
         return RunResult(
             name=name,
             exit_code=proc.returncode,
             failing_goals=_parse_failing_goals(output),
-            report_paths=discover_reports(workdir, report_globs),
+            report_paths=reports,
             timed_out=False,
+            compile_failed=not reports and bool(_COMPILE_FAIL_RE.search(output)),
         )
     except subprocess.TimeoutExpired as exc:
         partial = ""

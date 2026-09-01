@@ -1,17 +1,10 @@
 {
-  "schema_version": 1,
   "headline_verdict": "TESTS_REMOVED_OR_SKIPPED",
   "findings": [
     {
       "verdict": "TESTS_REMOVED_OR_SKIPPED",
       "module": ".",
-      "detail": {
-        "classname": "CalculatorTest",
-        "name": "addsNegatives",
-        "present_at_base": true,
-        "present_after": false,
-        "probable_rename": false
-      }
+      "subject": "calc.CalculatorTest.addsZero"
     }
   ]
 }

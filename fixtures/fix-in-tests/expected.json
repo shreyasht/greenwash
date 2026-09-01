@@ -1,16 +1,10 @@
 {
-  "schema_version": 1,
   "headline_verdict": "FIX_IS_IN_THE_TESTS",
   "findings": [
     {
       "verdict": "FIX_IS_IN_THE_TESTS",
       "module": ".",
-      "detail": {
-        "classname": "CalculatorTest",
-        "name": "addsTwoNumbers",
-        "after": "pass",
-        "source_only": "fail"
-      }
+      "subject": "calc.CalculatorTest.addsTwoNumbers"
     }
   ]
 }

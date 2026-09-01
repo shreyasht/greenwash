@@ -1,37 +1,42 @@
 # Fixtures — planted scenarios
 
-Each fixture is a **minimal self-contained Maven project** plus a **planted diff**, and it
-is the ground truth for one verdict (REQUIREMENTS_1.md §8, §11). `tests/test_fixtures.py`
-runs greenwash against every fixture that has an `expected.json` and asserts the result.
+Each fixture is a **minimal self-contained Maven project** in two states — `base/` and
+`head/` — plus an `expected.json`. It is the ground truth for one verdict
+(REQUIREMENTS_1.md §8, §11). `tests/test_fixtures.py` builds a throwaway git repo
+(base commit, then head commit), runs greenwash in single-commit mode with the default
+Maven command, and asserts the headline verdict and findings.
+
+The hermetic, no-JVM equivalent of these scenarios is `tests/test_orchestrate.py`, which
+runs everywhere; the Maven fixtures add the real integration and run in CI
+(`.github/workflows/ci.yml`), skipped locally when `mvn` is absent.
 
 ## Layout per fixture
 
 ```
 <fixture-name>/
   SPEC.md          # what is planted and why this verdict
-  expected.json    # schema_version 1; headline_verdict + findings greenwash must produce
-  repo/            # the Maven project at BASE (committed state before the change)
-  change.patch     # the planted diff, applied on top of repo/ to form the HEAD state
+  expected.json    # { "headline_verdict": ..., "findings": [{verdict, module, subject}] }
+  base/            # project tree, committed first
+  head/            # project tree, committed second (adds/mods/deletes vs base)
 ```
 
-The harness builds a throwaway git repo from `repo/`, commits it as base, applies
-`change.patch`, commits that as head, then runs greenwash in commit-range mode.
+The domain is a one-method `calc.Calculator`. The bug is `add` returning its first
+argument; the fix is `return a + b`.
 
 ## Do not
 
-Never edit a fixture's assertions, `change.patch`, or `expected.json` to make a failing
-run pass. The fixture is right; the code is wrong. If a fixture genuinely looks wrong,
-stop and raise it — see `CLAUDE.md`.
+Never edit a fixture's assertions, its `head/` tree, or `expected.json` to make a
+failing run pass. The fixture is right; the code is wrong. If a fixture genuinely looks
+wrong, stop and raise it — see `CLAUDE.md`.
 
 ## Status
 
-| Fixture | Verdict | repo/ | change.patch | expected.json |
-| --- | --- | --- | --- | --- |
-| honest-fix | `HONEST_FIX` | todo | todo | stub |
-| fix-in-tests | `FIX_IS_IN_THE_TESTS` | todo | todo | stub |
-| tests-removed | `TESTS_REMOVED_OR_SKIPPED` | todo | todo | stub |
-| no-test-changes | `NO_TEST_CHANGES` | todo | todo | stub |
+| Fixture | Verdict | Planted in head/ |
+| --- | --- | --- |
+| honest-fix | `HONEST_FIX` | real `add` fix + a comment-only test edit |
+| fix-in-tests | `FIX_IS_IN_THE_TESTS` | assertion changed to match the broken output; no source fix |
+| tests-removed | `TESTS_REMOVED_OR_SKIPPED` | real `add` fix + one test method deleted |
+| no-test-changes | `NO_TEST_CHANGES` | source-only change (adds `subtract`) |
 
-v0.2 / v0.3 fixtures (`config-weakened`, `lint-disabled`, `flaky-candidate`,
-`multi-module`, `compile-wall`, `no-strictness-reduction`) are added when their milestone
-starts — see `BUILD_PLAN.md` §1.
+v0.2 / v0.3 fixtures (`config-weakened`, `flaky-candidate`, `multi-module`,
+`compile-wall`, …) are added when their milestone starts — see `BUILD_PLAN.md` §1.
