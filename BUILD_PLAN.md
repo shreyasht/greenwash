@@ -262,3 +262,21 @@ _Append one line per completed step. Keep newest last._
   `git add -A` staged nothing for `fix-in-tests` — now copies without mtime and bumps
   every file's mtime forward.
   Branch `scaffold-v0.1` pushed; open the PR when ready. **v0.1 milestone: done.**
+- 2026-09-01 — ran greenwash against a real external repo (`mentra-boot`, Gradle +
+  Spring Boot) via a 5-line `.greenwash.toml`. Verdict on commit `c7d0afc` (a test-only
+  `@SpringBootTest` exclusion): `FIX_IS_IN_THE_TESTS` — run A green, run B (test reverted)
+  fails to load the Spring context. NFR-5 held (working tree / worktree list / stash
+  untouched). Confirms classify + Gradle report parsing + worktree isolation work on a
+  non-trivial third-party project.
+- 2026-09-01 — step 9 done: `flake.py` — `confirm(candidates, run_after, run_source_only,
+  *, k, mode)` re-runs each FIX_IS_IN_THE_TESTS candidate K times per side; survives only
+  on a consistent A-pass / B-fail across all rounds, early-exits once all demoted (FR-26,
+  FR-27). `replay.test_filter()` scopes a build to `(class, method)` tests —
+  `-Dtest=Class#m` (Maven) / `--tests fqcn.m` (Gradle) — so isolated mode costs ∝ finding
+  count not suite size. `orchestrate` wires confirmation runners (fresh worktree per
+  round), keeps vanished/skipped findings out of confirmation (structural, not flaky),
+  adds the FR-29 isolation caveat to warnings, threads `--confirm-count` / `--confirm-mode`.
+  Every-candidate-demoted → INCONCLUSIVE_FLAKY (via verdict.resolve, FR-28). Hermetic
+  tests: flaky-case demotion + a surviving fix through 2 confirmation rounds. Suite:
+  87 tests, 83 pass / 4 skip.
+  Next: build-tool auto-detect (Maven vs Gradle default command), then step 8.

@@ -14,11 +14,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from greenwash import classify, replay, reports, revisions
+from greenwash import classify, flake, replay, reports, revisions
 from greenwash.classify import Kind
 from greenwash.config import Config
 from greenwash.output import Report
-from greenwash.verdict import resolve
+from greenwash.verdict import Verdict, resolve
 
 
 @dataclass
@@ -28,6 +28,8 @@ class Options:
     commit: str | None = None
     build_command: list[str] | None = None
     timeout_s: int | None = None
+    confirm_count: int | None = None
+    confirm_mode: str | None = None
     keep: bool = False
 
 
@@ -103,8 +105,44 @@ def verify(options: Options, config: Config) -> Report:
     )
     gates = reports.compare_gates(a_result, b_result)
 
-    # flake confirmation (FR-26) is step 9; candidates pass straight through for now
-    surviving, demoted = per_test, []
+    mode = flake.ConfirmMode(options.confirm_mode or config.confirm_mode)
+    k = options.confirm_count if options.confirm_count is not None else config.confirm_count
+
+    # Only the A-pass / B-fail finding goes through flake confirmation (FR-26). A vanished
+    # or newly-skipped test is a structural fact, not a flaky outcome — it reports directly.
+    fix_candidates = [f for f in per_test if f.verdict is Verdict.FIX_IS_IN_THE_TESTS]
+    structural = [f for f in per_test if f.verdict is not Verdict.FIX_IS_IN_THE_TESTS]
+
+    if fix_candidates and k > 0:
+        def _confirm_runner(overlay):
+            def run(scope):
+                specs = None if scope is None else [(key.classname, key.name) for key in scope]
+                with revisions.worktree(
+                    repo_root, spec.head_ref, overlay=overlay, keep=options.keep
+                ) as wt:
+                    res = replay.run_build(
+                        wt, replay.test_filter(command, specs), timeout_s=timeout_s,
+                        modules=modules, name="confirm", report_globs=report_globs,
+                    )
+                    return reports.parse_reports(res.report_paths, wt)
+            return run
+
+        surviving, demoted = flake.confirm(
+            fix_candidates, _confirm_runner(None), _confirm_runner(b_overlay),
+            k=k, mode=mode,
+        )
+    else:
+        surviving, demoted = fix_candidates, []
+
+    confirmed_a_fix = bool(surviving)
+    surviving = surviving + structural
+
+    if confirmed_a_fix and mode is flake.ConfirmMode.ISOLATED:
+        warnings.append(
+            "per-test findings were confirmed with tests run in isolation, not under "
+            "full-suite conditions; test-order and shared-state effects are "
+            "indistinguishable from flakiness here (FR-29)"
+        )
 
     findings, head = resolve(
         test_or_config_changed=True,

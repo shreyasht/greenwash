@@ -25,14 +25,21 @@ RUNTESTS = '''import json, os
 os.makedirs("target/surefire-reports", exist_ok=True)
 ns = {}
 exec(open("calc.py").read(), ns)
+# A case marked "flaky" passes only on the very first build across the whole run
+# (tracked in the file named by GW_FLAKY_COUNTER), so flake confirmation demotes it.
+counter = os.environ.get("GW_FLAKY_COUNTER")
+first_build = True
+if counter:
+    first_build = not os.path.exists(counter)
+    open(counter, "a").write("x")
 rows = []
 for c in json.load(open("cases.json")):
-    got = ns["add"](c["a"], c["b"])
-    if got == c["expected"]:
-        rows.append('<testcase name="' + c["name"] + '" classname="calc.CalcTest"/>')
+    if c.get("flaky"):
+        ok = first_build
     else:
-        rows.append('<testcase name="' + c["name"] + '" classname="calc.CalcTest">'
-                    '<failure message="got ' + str(got) + '"/></testcase>')
+        ok = ns["add"](c["a"], c["b"]) == c["expected"]
+    tag = "" if ok else '<failure message="x"/>'
+    rows.append('<testcase name="' + c["name"] + '" classname="calc.CalcTest">' + tag + '</testcase>')
 xml = '<?xml version="1.0"?>\\n<testsuite name="calc.CalcTest">\\n' + "\\n".join(rows) + '\\n</testsuite>\\n'
 open("target/surefire-reports/TEST-calc.CalcTest.xml", "w").write(xml)
 '''
@@ -103,6 +110,25 @@ class OrchestrateTest(unittest.TestCase):
     def test_no_test_changes_skips_replay(self):
         r = self._verify(self._b(BUG, ONE), self._b(FIX, ONE))
         self.assertEqual(r.headline, Verdict.NO_TEST_CHANGES)
+
+    def test_fix_in_tests_survives_flake_confirmation(self):
+        # deterministic fake build -> the FIX_IS_IN_THE_TESTS candidate is re-confirmed
+        r = self._verify(self._b(BUG, ONE), self._b(BUG, ONE_HACKED))
+        self.assertEqual(r.headline, Verdict.FIX_IS_IN_THE_TESTS)
+        self.assertTrue(any("isolation" in w for w in r.warnings))  # FR-29 caveat
+
+    def test_flaky_candidate_is_demoted(self):
+        counter_dir = tempfile.mkdtemp(prefix="gw-flaky-")
+        self.addCleanup(shutil.rmtree, counter_dir, ignore_errors=True)
+        os.environ["GW_FLAKY_COUNTER"] = os.path.join(counter_dir, "c")
+        flaky_case = json.dumps(
+            [{"name": "addsTwoNumbers", "a": 2, "b": 3, "expected": 5, "flaky": True}]
+        )
+        try:
+            r = self._verify(self._b(BUG, ONE), self._b(BUG, flaky_case))
+        finally:
+            os.environ.pop("GW_FLAKY_COUNTER", None)
+        self.assertEqual(r.headline, Verdict.INCONCLUSIVE_FLAKY)
 
     def test_nondestructive_and_no_leftover_worktrees(self):
         root, sha = self._repo(self._b(BUG, ONE), self._b(BUG, ONE_HACKED))

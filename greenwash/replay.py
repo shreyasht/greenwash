@@ -76,6 +76,29 @@ def _is_maven(command: list[str]) -> bool:
     return os.path.basename(command[0]).lower().startswith(("mvn", "mvnw"))
 
 
+def _is_gradle(command: list[str]) -> bool:
+    return "gradle" in os.path.basename(command[0]).lower()
+
+
+def test_filter(command: list[str], specs: list[tuple[str, str]] | None) -> list[str]:
+    """Restrict a build to specific (classname, method) tests for flake confirmation
+    (FR-27). `specs` None/empty -> command unchanged (full suite). Maven:
+    `-Dtest=Class#method`; Gradle: `--tests 'fqcn.method'`. Other build tools: unchanged.
+    """
+    if not specs:
+        return list(command)
+    methods = [(cls, name.rstrip("()")) for cls, name in specs]
+    if _is_maven(command):
+        joined = ",".join(f"{cls}#{name}" for cls, name in methods)
+        return [*command, f"-Dtest={joined}", "-DfailIfNoTests=false"]
+    if _is_gradle(command):
+        out = list(command)
+        for cls, name in methods:
+            out += ["--tests", f"{cls}.{name}"]
+        return out
+    return list(command)
+
+
 def _maven_scope(command: list[str], modules: list[str] | None) -> list[str]:
     """Append `-pl a,b -am` for Maven when specific (non-root) modules are touched (FR-17)."""
     if not modules or not _is_maven(command):

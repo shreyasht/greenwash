@@ -6,11 +6,13 @@ import unittest
 from pathlib import Path
 
 from greenwash.replay import (
+    _is_gradle,
     _is_maven,
     _maven_scope,
     _parse_failing_goals,
     discover_reports,
     run_build,
+    test_filter,
 )
 
 
@@ -33,6 +35,31 @@ class MavenScopeTest(unittest.TestCase):
 
     def test_non_maven_untouched(self):
         self.assertEqual(_maven_scope(["gradle", "test"], ["svc-a"]), ["gradle", "test"])
+
+
+class TestFilterTest(unittest.TestCase):
+    SPECS = [("com.x.CalcTest", "addsOne()"), ("com.x.CalcTest", "addsTwo")]
+
+    def test_maven(self):
+        out = test_filter(["mvn", "-B", "test"], self.SPECS)
+        self.assertEqual(
+            out,
+            ["mvn", "-B", "test",
+             "-Dtest=com.x.CalcTest#addsOne,com.x.CalcTest#addsTwo",
+             "-DfailIfNoTests=false"],
+        )
+
+    def test_gradle(self):
+        self.assertTrue(_is_gradle(["./gradlew", "test"]))
+        out = test_filter(["./gradlew", "test"], self.SPECS[:1])
+        self.assertEqual(out, ["./gradlew", "test", "--tests", "com.x.CalcTest.addsOne"])
+
+    def test_none_or_empty_is_unchanged(self):
+        self.assertEqual(test_filter(["mvn", "test"], None), ["mvn", "test"])
+        self.assertEqual(test_filter(["mvn", "test"], []), ["mvn", "test"])
+
+    def test_unknown_build_tool_unchanged(self):
+        self.assertEqual(test_filter(["bazel", "test"], self.SPECS), ["bazel", "test"])
 
 
 class FailingGoalsTest(unittest.TestCase):

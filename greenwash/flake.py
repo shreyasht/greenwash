@@ -14,7 +14,17 @@ suite at proportional cost (FR-29).
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from enum import Enum
+
+from greenwash.reports import Outcome, TestKey
+from greenwash.verdict import Finding
+
+_FAILING = frozenset({Outcome.FAIL, Outcome.ERROR})
+
+# A confirmation runner: given the test scope (None = whole suite, FR-29 full mode),
+# run one side once and return its per-test outcomes.
+Runner = Callable[[list[TestKey] | None], dict[TestKey, Outcome]]
 
 
 class ConfirmMode(str, Enum):
@@ -22,6 +32,38 @@ class ConfirmMode(str, Enum):
     FULL = "full"
 
 
-def confirm(candidates: list, *, k: int = 2, mode: ConfirmMode = ConfirmMode.ISOLATED) -> tuple[list, list]:
-    """Return (surviving_findings, demoted_findings)."""
-    raise NotImplementedError  # BUILD_PLAN.md §3 step 9
+def _key_of(finding: Finding) -> TestKey:
+    return TestKey(finding.module, finding.detail["classname"], finding.detail["name"])
+
+
+def confirm(
+    candidates: list[Finding],
+    run_after: Runner,
+    run_source_only: Runner,
+    *,
+    k: int = 2,
+    mode: ConfirmMode = ConfirmMode.ISOLATED,
+) -> tuple[list[Finding], list[Finding]]:
+    """Re-run the candidate per-test findings K times per side. A finding survives only
+    if `after == pass and source_only in {fail, error}` on every one of the K rounds
+    (the original comparison already established it once). Returns (surviving, demoted);
+    demotion is per-finding, never per-run (FR-28)."""
+    if not candidates or k <= 0:
+        return list(candidates), []
+
+    by_key = {_key_of(f): f for f in candidates}
+    scope = None if mode is ConfirmMode.FULL else list(by_key)
+    alive = dict.fromkeys(by_key, True)
+
+    for _ in range(k):
+        after = run_after(scope)
+        source_only = run_source_only(scope)
+        for key in by_key:
+            if not (after.get(key) is Outcome.PASS and source_only.get(key) in _FAILING):
+                alive[key] = False
+        if not any(alive.values()):
+            break
+
+    surviving = [f for key, f in by_key.items() if alive[key]]
+    demoted = [f for key, f in by_key.items() if not alive[key]]
+    return surviving, demoted

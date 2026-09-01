@@ -24,6 +24,10 @@ def build_parser() -> argparse.ArgumentParser:
     # default when neither is given: uncommitted working tree (FR-7)
     p.add_argument("--build-command", help="override the per-run build command")
     p.add_argument("--timeout", type=int, default=None, help="per-run timeout seconds (FR-16)")
+    p.add_argument("--confirm-count", type=int, default=None,
+                   help="flake confirmation re-runs per side (FR-26; 0 disables)")
+    p.add_argument("--confirm-mode", choices=["isolated", "full"], default=None,
+                   help="confirm candidate tests in isolation or via the full suite (FR-29)")
     p.add_argument("--json", action="store_true", help="emit the machine-readable report")
     p.add_argument("--keep", action="store_true", help="do not delete worktrees (FR-18)")
     return p
@@ -40,6 +44,8 @@ def run(argv: list[str]) -> int:
         commit=args.commit,
         build_command=shlex.split(args.build_command) if args.build_command else None,
         timeout_s=args.timeout,
+        confirm_count=args.confirm_count,
+        confirm_mode=args.confirm_mode,
         keep=args.keep,
     )
     report = orchestrate.verify(options, config)
