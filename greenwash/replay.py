@@ -44,6 +44,14 @@ REPORT_GLOBS = (
 TIMEOUT_EXIT = 124
 
 _GOAL_RE = re.compile(r"Failed to execute goal ([\w.\-]+:[\w.\-]+:[\w.\-]+:[\w.\-]+)")
+# Gradle: "Execution failed for task ':x'." and "> Task :x FAILED"
+_GRADLE_TASK_RE = re.compile(r"Execution failed for task '(:[\w:.\-]+)'|> Task (:[\w:.\-]+) FAILED")
+# Test-execution goals/tasks are the per-test observable's domain, not gate weakening —
+# excluding them keeps CONFIG_WEAKENED off the false-positive budget (NFR-6).
+_NON_GATE_RE = re.compile(
+    r"maven-(surefire|failsafe)-plugin|"
+    r"(?:^|:)(test|integrationTest|intTest|functionalTest)$|Test$"
+)
 _COMPILE_FAIL_RE = re.compile(
     r"COMPILATION ERROR|BUILD FAILED.*compileTest|compileTest\w*\s+FAILED|"
     r"cannot find symbol|error: .* is not abstract",
@@ -89,7 +97,13 @@ def discover_reports(workdir: str, extra_globs: tuple[str, ...] = ()) -> list[st
 
 
 def _parse_failing_goals(output: str) -> list[str]:
-    return sorted(set(_GOAL_RE.findall(output or "")))
+    """Identifiers of build goals/tasks that failed (FR-15), Maven and Gradle, with
+    test-execution goals filtered out (those are the per-test observable's job)."""
+    text = output or ""
+    goals = set(_GOAL_RE.findall(text))
+    for a, b in _GRADLE_TASK_RE.findall(text):
+        goals.add(a or b)
+    return sorted(g for g in goals if not _NON_GATE_RE.search(g))
 
 
 def _is_maven(command: list[str]) -> bool:

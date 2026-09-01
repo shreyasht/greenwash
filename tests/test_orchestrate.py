@@ -21,7 +21,7 @@ from greenwash.orchestrate import Options, verify
 from greenwash.output import _finding_subject
 from greenwash.verdict import Verdict
 
-RUNTESTS = '''import json, os
+RUNTESTS = '''import json, os, sys
 os.makedirs("target/surefire-reports", exist_ok=True)
 ns = {}
 exec(open("calc.py").read(), ns)
@@ -32,16 +32,25 @@ first_build = True
 if counter:
     first_build = not os.path.exists(counter)
     open(counter, "a").write("x")
-rows = []
+rows, passed, total = [], 0, 0
 for c in json.load(open("cases.json")):
+    total += 1
     if c.get("flaky"):
         ok = first_build
     else:
         ok = ns["add"](c["a"], c["b"]) == c["expected"]
+    passed += 1 if ok else 0
     tag = "" if ok else '<failure message="x"/>'
     rows.append('<testcase name="' + c["name"] + '" classname="calc.CalcTest">' + tag + '</testcase>')
 xml = '<?xml version="1.0"?>\\n<testsuite name="calc.CalcTest">\\n' + "\\n".join(rows) + '\\n</testsuite>\\n'
 open("target/surefire-reports/TEST-calc.CalcTest.xml", "w").write(xml)
+# Optional coverage-style gate: fails the build when the pass ratio is under the
+# threshold in gate.json (stands in for jacocoTestCoverageVerification).
+if os.path.exists("gate.json"):
+    need = json.load(open("gate.json")).get("min_pass_ratio", 0)
+    if total and passed / total < need:
+        print("Execution failed for task ':coverageCheck'.")
+        sys.exit(1)
 '''
 
 BUG = "def add(a, b):\n    return a\n"
@@ -116,6 +125,19 @@ class OrchestrateTest(unittest.TestCase):
         r = self._verify(self._b(BUG, ONE), self._b(BUG, ONE_HACKED))
         self.assertEqual(r.headline, Verdict.FIX_IS_IN_THE_TESTS)
         self.assertTrue(any("isolation" in w for w in r.warnings))  # FR-29 caveat
+
+    def test_config_weakened(self):
+        strict = json.dumps({"min_pass_ratio": 1.0})
+        loose = json.dumps({"min_pass_ratio": 0.0})
+        root, sha = self._repo(
+            {**self._b(BUG, ONE), "gate.json": strict},   # gate fails at base (0/1 pass)
+            {**self._b(BUG, ONE), "gate.json": loose},     # gate passes after
+        )
+        cfg = Config(build_command=BUILD_CMD,
+                     classification_overrides={**OVERRIDES, "gate.json": "config"})
+        r = verify(Options(repo_root=root, commit=sha), cfg)
+        self.assertEqual(r.headline, Verdict.CONFIG_WEAKENED)
+        self.assertIn("coverageCheck", str(r.findings[0].detail))
 
     def test_flaky_candidate_is_demoted(self):
         counter_dir = tempfile.mkdtemp(prefix="gw-flaky-")

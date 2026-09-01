@@ -16,7 +16,7 @@ import time
 import unittest
 from pathlib import Path
 
-from greenwash.config import Config
+from greenwash import config as config_mod
 from greenwash.orchestrate import Options, verify
 from greenwash.output import _finding_subject
 
@@ -76,7 +76,9 @@ def _make_case(fixture: Path):
         git("commit", "-qm", "head")
         sha = git("rev-parse", "HEAD").strip()
 
-        report = verify(Options(repo_root=str(work), commit=sha), Config())
+        report = verify(
+            Options(repo_root=str(work), commit=sha), config_mod.load(str(work))
+        )
 
         self.assertEqual(report.headline.value, expected["headline_verdict"])
         got = sorted((f.verdict.value, f.module, _finding_subject(f)) for f in report.findings)

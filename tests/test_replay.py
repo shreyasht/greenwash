@@ -116,6 +116,22 @@ class FailingGoalsTest(unittest.TestCase):
         self.assertEqual(_parse_failing_goals("[INFO] BUILD SUCCESS"), [])
         self.assertEqual(_parse_failing_goals(""), [])
 
+    def test_parses_gradle_tasks(self):
+        out = (
+            "> Task :checkstyleMain FAILED\n"
+            "Execution failed for task ':jacocoTestCoverageVerification'.\n"
+            "> Task :test FAILED\n"           # test execution is not a gate
+        )
+        self.assertEqual(
+            _parse_failing_goals(out),
+            [":checkstyleMain", ":jacocoTestCoverageVerification"],
+        )
+
+    def test_maven_surefire_failure_is_not_a_gate(self):
+        out = ("Failed to execute goal "
+               "org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test)\n")
+        self.assertEqual(_parse_failing_goals(out), [])
+
 
 class DiscoverReportsTest(unittest.TestCase):
     def setUp(self):

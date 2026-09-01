@@ -37,6 +37,8 @@ wrong, stop and raise it — see `CLAUDE.md`.
 | fix-in-tests | `FIX_IS_IN_THE_TESTS` | assertion changed to match the broken output; no source fix |
 | tests-removed | `TESTS_REMOVED_OR_SKIPPED` | real `add` fix + one test method deleted |
 | no-test-changes | `NO_TEST_CHANGES` | source-only change (adds `subtract`) |
+| config-weakened | `CONFIG_WEAKENED` | `pom.xml` lowers the JaCoCo coverage minimum 0.80 → 0.00 |
 
-v0.2 / v0.3 fixtures (`config-weakened`, `flaky-candidate`, `multi-module`,
-`compile-wall`, …) are added when their milestone starts — see `BUILD_PLAN.md` §1.
+Remaining v0.2 / v0.3 fixtures (`flaky-candidate`, `multi-module`, `compile-wall`, …)
+are added when their milestone starts — see `BUILD_PLAN.md` §1. A fixture may carry its
+own `.greenwash.toml` (config-weakened needs `mvn verify` for the gate phase).

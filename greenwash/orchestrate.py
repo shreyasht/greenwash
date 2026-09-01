@@ -107,7 +107,21 @@ def verify(options: Options, config: Config) -> Report:
         after_ran_tests=a_result.ran_tests,
         source_only_ran_tests=b_result.ran_tests,
     )
-    gates = reports.compare_gates(a_result, b_result)
+
+    # Gate observable (FR-22, §4.2): a goal that failed under base config but not under
+    # the new config. Read from run B when it got far enough; when the compile wall stops
+    # run B before its gates, fall back to a config-only revert — which needs no test
+    # compilation, so CONFIG_WEAKENED stays detectable (§9).
+    config_paths = [c for c in classifications if c.kind is Kind.CONFIG]
+    gate_reference = b_result
+    if config_paths and (b_result.compile_failed or not b_result.ran_tests):
+        cfg_overlay = {
+            c.path: revisions.read_blob(repo_root, spec.base_ref, c.path) for c in config_paths
+        }
+        gate_reference, _ = _run_side(
+            repo_root, spec.head_ref, command, overlay=cfg_overlay, name="B_cfg", **common,
+        )
+    gates = reports.compare_gates(a_result, gate_reference)
 
     mode = flake.ConfirmMode(options.confirm_mode or config.confirm_mode)
     k = options.confirm_count if options.confirm_count is not None else config.confirm_count

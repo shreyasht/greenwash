@@ -1,0 +1,10 @@
+{
+  "headline_verdict": "CONFIG_WEAKENED",
+  "findings": [
+    {
+      "verdict": "CONFIG_WEAKENED",
+      "module": ".",
+      "subject": "org.jacoco:jacoco-maven-plugin:0.8.11:check"
+    }
+  ]
+}

@@ -284,4 +284,16 @@ _Append one line per completed step. Keep newest last._
   no wrapper) when a gradle marker is at the root, else the Maven default. `orchestrate`
   uses it when neither CLI nor config supplies a build command — so a plain Gradle repo
   needs no `.greenwash.toml` at all. Suite: 91 tests, 87 pass / 4 skip.
-  Next: step 8 (gate observable / CONFIG_WEAKENED).
+- 2026-09-01 — step 8 done: **gate observable / CONFIG_WEAKENED.** `_parse_failing_goals`
+  now reads Gradle failing tasks (`Execution failed for task ':x'`, `> Task :x FAILED`)
+  alongside Maven `Failed to execute goal GAV:goal`, and filters out test-execution
+  goals/tasks (`:test`, surefire/failsafe) so they don't feed the false-positive budget
+  (NFR-6). `compare_gates` was already there; `orchestrate` now reads gates from run B,
+  and when config changed AND run B hit the compile wall / never ran, does a dedicated
+  config-only revert run (`B_cfg`) — no test compilation needed, so CONFIG_WEAKENED stays
+  detectable (§9). Hermetic test: a `gate.json` pass-ratio threshold lowered head-side →
+  `CONFIG_WEAKENED`. Maven fixture `config-weakened` (JaCoCo `check` 0.80→0.00, carries
+  its own `.greenwash.toml` for `mvn verify`); `test_fixtures.py` now loads each
+  fixture's config. Gate-finding module attribution is still `.` — multi-module mapping
+  is step 10. Suite: 95 tests, 90 pass / 5 skip (Maven fixtures).
+  Next: step 10 (multi-module) or step 11 (Gradle paths, GH Action, pre-commit).
