@@ -67,6 +67,19 @@ def _make_case(fixture: Path):
         git("commit", "-qm", "head", "--allow-empty")  # --allow-empty: surface a bad
         sha = git("rev-parse", "HEAD").strip()          # tree as an assertion, not a crash
 
+        diff_stat = git("diff", "--stat", f"{sha}~1", sha).strip()
+        if not diff_stat and expected["headline_verdict"] != "NO_TEST_CHANGES":
+            tree = git("ls-tree", "-r", "--name-only", sha).strip()
+            tf = work / "src/test/java/calc/CalculatorTest.java"
+            body = tf.read_text() if tf.exists() else "<missing>"
+            src_head = (fixture / "head/src/test/java/calc/CalculatorTest.java")
+            self.fail(
+                f"empty base->head diff for {fixture.name}\n"
+                f"worktree tree:\n{tree}\n\nworktree CalculatorTest.java:\n{body}\n"
+                f"fixture head file exists: {src_head.exists()}; "
+                f"content:\n{src_head.read_text() if src_head.exists() else '<missing>'}"
+            )
+
         report = verify(Options(repo_root=str(work), commit=sha), Config())
 
         self.assertEqual(report.headline.value, expected["headline_verdict"])
