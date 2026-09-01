@@ -131,14 +131,36 @@ def compare(
                 k.module == key.module and k.name == key.name and k.classname != key.classname
                 for k in after
             )
+            probable_move = any(
+                k.classname == key.classname and k.name == key.name and k.module != key.module
+                for k in after
+            )
+            if probable_rename:
+                reason = "probable rename"
+            elif probable_move:
+                reason = "probable module move (open question 1)"
+            else:
+                reason = "present at base, absent after"
             findings.append(Finding(Verdict.TESTS_REMOVED_OR_SKIPPED, key.module, {
                 "classname": key.classname,
                 "name": key.name,
-                "reason": "probable rename" if probable_rename else "present at base, absent after",
+                "reason": reason,
                 "probable_rename": probable_rename,
+                "probable_move": probable_move,
             }))
 
     return findings
+
+
+def _gate_module(goal: str) -> str:
+    """Best-effort module for a failing goal. Gradle task path ':sub:task' -> 'sub';
+    ':task' or a Maven GAV:goal -> '.'. Maven multi-module attribution needs pom
+    parsing and is not done yet (FR-24)."""
+    if goal.startswith(":"):
+        parts = goal.strip(":").split(":")
+        if len(parts) >= 2:
+            return ":".join(parts[:-1])
+    return "."
 
 
 def compare_gates(after: RunResult, source_only: RunResult) -> list[Finding]:
@@ -148,7 +170,7 @@ def compare_gates(after: RunResult, source_only: RunResult) -> list[Finding]:
     after_failing = set(after.failing_goals)
     weakened = sorted(g for g in source_only.failing_goals if g not in after_failing)
     return [
-        Finding(Verdict.CONFIG_WEAKENED, ".", {
+        Finding(Verdict.CONFIG_WEAKENED, _gate_module(goal), {
             "goal": goal,
             "failed_at_base": True,
             "passes_after": True,

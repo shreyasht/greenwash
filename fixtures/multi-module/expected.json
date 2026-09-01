@@ -1,0 +1,10 @@
+{
+  "headline_verdict": "FIX_IS_IN_THE_TESTS",
+  "findings": [
+    {
+      "verdict": "FIX_IS_IN_THE_TESTS",
+      "module": "svc-a",
+      "subject": "calc.CalculatorTest.addsTwoNumbers"
+    }
+  ]
+}

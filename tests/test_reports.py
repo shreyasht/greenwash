@@ -113,6 +113,13 @@ class CompareTest(unittest.TestCase):
         findings = compare({new: Outcome.PASS}, {old: Outcome.PASS})
         self.assertTrue(findings[0].detail["probable_rename"])
 
+    def test_probable_module_move(self):
+        old = TestKey("svc-a", "CalcTest", "t")
+        new = TestKey("svc-b", "CalcTest", "t")
+        findings = compare({new: Outcome.PASS}, {old: Outcome.PASS})
+        self.assertTrue(findings[0].detail["probable_move"])
+        self.assertFalse(findings[0].detail["probable_rename"])
+
     def test_vanished_suppressed_when_base_never_ran_tests(self):
         k = TestKey("mod", "CalcTest", "gone")
         self.assertEqual(compare({}, {k: Outcome.PASS}, source_only_ran_tests=False), [])
@@ -132,6 +139,19 @@ class CompareGatesTest(unittest.TestCase):
     def test_gate_failing_in_both_is_no_finding(self):
         g = ["org.jacoco:jacoco-maven-plugin:0.8.11:check"]
         self.assertEqual(compare_gates(self._run("A", g), self._run("B", g)), [])
+
+    def test_gradle_gate_module_from_task_path(self):
+        findings = compare_gates(
+            self._run("A", []),
+            self._run("B", [":svc-a:jacocoTestCoverageVerification"]),
+        )
+        self.assertEqual(findings[0].module, "svc-a")
+
+    def test_maven_gate_module_is_root(self):
+        findings = compare_gates(
+            self._run("A", []), self._run("B", ["org.jacoco:jacoco-maven-plugin:0.8.11:check"]),
+        )
+        self.assertEqual(findings[0].module, ".")
 
 
 if __name__ == "__main__":
