@@ -12,6 +12,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -53,7 +54,15 @@ def _make_case(fixture: Path):
                     continue
                 path = work / entry
                 shutil.rmtree(path) if path.is_dir() else path.unlink()
-            shutil.copytree(fixture / side, work, dirs_exist_ok=True)
+            # copy_function=copy (not copy2) + an mtime bump: base and head fixture files
+            # share a checkout mtime and a single-character edit is size-preserving, so
+            # git's racy-clean check would otherwise skip re-hashing and stage nothing.
+            shutil.copytree(fixture / side, work, dirs_exist_ok=True, copy_function=shutil.copy)
+            stamp = time.time() + 10
+            for root, dirs, files in os.walk(work):
+                dirs[:] = [d for d in dirs if d != ".git"]
+                for name in files:
+                    os.utime(os.path.join(root, name), (stamp, stamp))
 
         load_tree("base")
         git("init", "-q", "-b", "main")
@@ -64,21 +73,8 @@ def _make_case(fixture: Path):
 
         load_tree("head")
         git("add", "-A")
-        git("commit", "-qm", "head", "--allow-empty")  # --allow-empty: surface a bad
-        sha = git("rev-parse", "HEAD").strip()          # tree as an assertion, not a crash
-
-        diff_stat = git("diff", "--stat", f"{sha}~1", sha).strip()
-        if not diff_stat and expected["headline_verdict"] != "NO_TEST_CHANGES":
-            rel = "src/test/java/calc/CalculatorTest.java"
-            self.fail(
-                f"empty base->head diff for {fixture.name}\n"
-                f"log:\n{git('log', '--format=%h %s', '--all')}\n"
-                f"base commit {rel}:\n{git('show', f'{sha}~1:{rel}')}\n"
-                f"head commit {rel}:\n{git('show', f'{sha}:{rel}')}\n"
-                f"fixture/base file:\n{(fixture / 'base' / rel).read_text()}\n"
-                f"fixture/head file:\n{(fixture / 'head' / rel).read_text()}\n"
-                f"listdir(fixture): {sorted(os.listdir(fixture))}"
-            )
+        git("commit", "-qm", "head")
+        sha = git("rev-parse", "HEAD").strip()
 
         report = verify(Options(repo_root=str(work), commit=sha), Config())
 
