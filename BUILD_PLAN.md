@@ -256,4 +256,9 @@ _Append one line per completed step. Keep newest last._
   through a stdlib fake build (no JVM). v0.1 Maven `fixtures/` rebuilt as base/ + head/
   trees with `tests/test_fixtures.py` running greenwash for real (skipped locally without
   `mvn`, run in CI via `.github/workflows/ci.yml`). Suite: 74 tests, 70 pass / 4 skip
-  (the Maven fixtures).
+  locally; **all 74 green on CI** including the 4 real Maven builds (run 33525544046).
+  Harness gotcha fixed: `shutil.copytree` default `copy2` preserved the shared checkout
+  mtime, and a size-preserving one-char assertion edit tripped git's racy-clean skip so
+  `git add -A` staged nothing for `fix-in-tests` — now copies without mtime and bumps
+  every file's mtime forward.
+  Branch `scaffold-v0.1` pushed; open the PR when ready. **v0.1 milestone: done.**
