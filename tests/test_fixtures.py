@@ -8,6 +8,7 @@ Maven on PATH; skipped with a clear message when absent (run in CI — see
 """
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -39,25 +40,32 @@ def _make_case(fixture: Path):
         self.addCleanup(shutil.rmtree, work, ignore_errors=True)
 
         def git(*args):
-            subprocess.run(["git", "-C", str(work), *args], check=True, capture_output=True)
+            proc = subprocess.run(
+                ["git", "-C", str(work), *args], capture_output=True, text=True
+            )
+            if proc.returncode != 0:
+                self.fail(f"git {' '.join(args)} -> {proc.returncode}\n{proc.stdout}\n{proc.stderr}")
+            return proc.stdout
 
-        shutil.copytree(fixture / "base", work, dirs_exist_ok=True)
+        def load_tree(side):
+            for entry in list(os.listdir(work)):
+                if entry == ".git":
+                    continue
+                path = work / entry
+                shutil.rmtree(path) if path.is_dir() else path.unlink()
+            shutil.copytree(fixture / side, work, dirs_exist_ok=True)
+
+        load_tree("base")
         git("init", "-q", "-b", "main")
         git("config", "user.email", "t@t")
         git("config", "user.name", "t")
         git("add", "-A")
         git("commit", "-qm", "base")
 
-        for p in work.iterdir():
-            if p.name == ".git":
-                continue
-            shutil.rmtree(p) if p.is_dir() else p.unlink()
-        shutil.copytree(fixture / "head", work, dirs_exist_ok=True)
+        load_tree("head")
         git("add", "-A")
-        git("commit", "-qm", "head")
-        sha = subprocess.run(
-            ["git", "-C", str(work), "rev-parse", "HEAD"], capture_output=True, text=True
-        ).stdout.strip()
+        git("commit", "-qm", "head", "--allow-empty")  # --allow-empty: surface a bad
+        sha = git("rev-parse", "HEAD").strip()          # tree as an assertion, not a crash
 
         report = verify(Options(repo_root=str(work), commit=sha), Config())
 
