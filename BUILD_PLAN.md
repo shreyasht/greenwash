@@ -279,4 +279,9 @@ _Append one line per completed step. Keep newest last._
   Every-candidate-demoted → INCONCLUSIVE_FLAKY (via verdict.resolve, FR-28). Hermetic
   tests: flaky-case demotion + a surviving fix through 2 confirmation rounds. Suite:
   87 tests, 83 pass / 4 skip.
-  Next: build-tool auto-detect (Maven vs Gradle default command), then step 8.
+- 2026-09-01 — build-tool auto-detect: `replay.default_build_command(repo_root)` returns
+  the Gradle command (`./gradlew test --continue --console=plain`, or bare `gradle` with
+  no wrapper) when a gradle marker is at the root, else the Maven default. `orchestrate`
+  uses it when neither CLI nor config supplies a build command — so a plain Gradle repo
+  needs no `.greenwash.toml` at all. Suite: 91 tests, 87 pass / 4 skip.
+  Next: step 8 (gate observable / CONFIG_WEAKENED).

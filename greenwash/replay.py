@@ -28,6 +28,13 @@ from pathlib import Path
 # the whole command via .greenwash.toml (FR-30).
 MAVEN_DEFAULT_CMD = ["mvn", "-B", "-Dmaven.test.failure.ignore=true", "test"]
 
+# --continue: keep running later tasks after one fails, so gate tasks
+# (jacocoTestCoverageVerification, checkstyleMain, …) stay observable. Gradle always
+# runs every test in the `test` task and writes the XML regardless of pass/fail.
+GRADLE_DEFAULT_CMD = ["./gradlew", "test", "--continue", "--console=plain"]
+
+_GRADLE_MARKERS = ("gradlew", "build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts")
+
 REPORT_GLOBS = (
     "**/target/surefire-reports/*.xml",
     "**/target/failsafe-reports/*.xml",
@@ -56,6 +63,19 @@ class RunResult:
     def ran_tests(self) -> bool:
         """FR-25: distinguish 'build never ran tests' from 'tests ran and failed'."""
         return bool(self.report_paths)
+
+
+def default_build_command(repo_root: str) -> list[str]:
+    """Pick a default build command by build-tool markers at the repo root (FR-12).
+    Gradle if a gradle marker is present, otherwise Maven. Uses `./gradlew` when the
+    wrapper exists, else a bare `gradle`."""
+    root = Path(repo_root)
+    if any((root / marker).exists() for marker in _GRADLE_MARKERS):
+        cmd = list(GRADLE_DEFAULT_CMD)
+        if not (root / "gradlew").is_file():
+            cmd[0] = "gradle"
+        return cmd
+    return list(MAVEN_DEFAULT_CMD)
 
 
 def discover_reports(workdir: str, extra_globs: tuple[str, ...] = ()) -> list[str]:

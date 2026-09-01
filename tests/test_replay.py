@@ -6,10 +6,12 @@ import unittest
 from pathlib import Path
 
 from greenwash.replay import (
+    MAVEN_DEFAULT_CMD,
     _is_gradle,
     _is_maven,
     _maven_scope,
     _parse_failing_goals,
+    default_build_command,
     discover_reports,
     run_build,
     test_filter,
@@ -60,6 +62,37 @@ class TestFilterTest(unittest.TestCase):
 
     def test_unknown_build_tool_unchanged(self):
         self.assertEqual(test_filter(["bazel", "test"], self.SPECS), ["bazel", "test"])
+
+
+class DefaultBuildCommandTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="greenwash-dbc-")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _touch(self, name, mode=0o644):
+        p = Path(self.tmp, name)
+        p.write_text("")
+        p.chmod(mode)
+
+    def test_maven_when_no_gradle_marker(self):
+        self._touch("pom.xml")
+        self.assertEqual(default_build_command(self.tmp), list(MAVEN_DEFAULT_CMD))
+
+    def test_no_markers_defaults_to_maven(self):
+        self.assertEqual(default_build_command(self.tmp), list(MAVEN_DEFAULT_CMD))
+
+    def test_gradle_wrapper(self):
+        self._touch("build.gradle")
+        self._touch("gradlew", mode=0o755)
+        self.assertEqual(default_build_command(self.tmp)[0], "./gradlew")
+
+    def test_gradle_without_wrapper_uses_bare_gradle(self):
+        self._touch("build.gradle.kts")
+        cmd = default_build_command(self.tmp)
+        self.assertEqual(cmd[0], "gradle")
+        self.assertIn("--continue", cmd)
 
 
 class FailingGoalsTest(unittest.TestCase):

@@ -76,7 +76,11 @@ def verify(options: Options, config: Config) -> Report:
         )
         return Report(head, findings, classifications, warnings)
 
-    command = options.build_command or config.build_command or list(replay.MAVEN_DEFAULT_CMD)
+    command = (
+        options.build_command
+        or config.build_command
+        or replay.default_build_command(repo_root)
+    )
     timeout_s = options.timeout_s or config.timeout_s
     report_globs = tuple(config.report_globs)
 
