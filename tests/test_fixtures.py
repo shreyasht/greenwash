@@ -69,15 +69,15 @@ def _make_case(fixture: Path):
 
         diff_stat = git("diff", "--stat", f"{sha}~1", sha).strip()
         if not diff_stat and expected["headline_verdict"] != "NO_TEST_CHANGES":
-            tree = git("ls-tree", "-r", "--name-only", sha).strip()
-            tf = work / "src/test/java/calc/CalculatorTest.java"
-            body = tf.read_text() if tf.exists() else "<missing>"
-            src_head = (fixture / "head/src/test/java/calc/CalculatorTest.java")
+            rel = "src/test/java/calc/CalculatorTest.java"
             self.fail(
                 f"empty base->head diff for {fixture.name}\n"
-                f"worktree tree:\n{tree}\n\nworktree CalculatorTest.java:\n{body}\n"
-                f"fixture head file exists: {src_head.exists()}; "
-                f"content:\n{src_head.read_text() if src_head.exists() else '<missing>'}"
+                f"log:\n{git('log', '--format=%h %s', '--all')}\n"
+                f"base commit {rel}:\n{git('show', f'{sha}~1:{rel}')}\n"
+                f"head commit {rel}:\n{git('show', f'{sha}:{rel}')}\n"
+                f"fixture/base file:\n{(fixture / 'base' / rel).read_text()}\n"
+                f"fixture/head file:\n{(fixture / 'head' / rel).read_text()}\n"
+                f"listdir(fixture): {sorted(os.listdir(fixture))}"
             )
 
         report = verify(Options(repo_root=str(work), commit=sha), Config())
