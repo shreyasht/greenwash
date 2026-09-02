@@ -55,6 +55,11 @@ and each is out of scope permanently unless revisited by decision record.
 - **Not a test generator.** It never writes or repairs tests.
 - **Not a config parser.** It never learns the schema of JaCoCo, Checkstyle or any other
   gate. It reverts config and observes what breaks. See §4.2 — this is load-bearing.
+- **Not a CI-pipeline auditor.** It observes the build command it is told to run. It does
+  not interpret `.github/workflows` to check whether the job carrying a required check can
+  be skipped — job-level `if:`, path filters, `continue-on-error`, renamed or duplicated
+  check names. That adjacency (can the gate fire?) is covered by a static workflow audit;
+  see DR-8. astroturf covers the other half: did the code earn the gate it passed?
 - **Not agent-specific.** It reads a diff. Which tool produced the diff is irrelevant —
   including a human.
 
@@ -140,6 +145,10 @@ highest-precedence finding across all of them — one offending module fails the
   Fall back to filename suffixes (`*Test.java`, `*IT.java`) for non-standard layouts.
 - **FR-3** Treat as `config` anything that can alter what the build enforces: build files,
   Surefire/Failsafe settings, coverage thresholds, static-analysis configs, CI workflows.
+  CI workflow files are classified and reverted in the source-only run like any config,
+  but the replay observes only the local build command's outcomes (§4.2); workflow-level
+  changes — which job runs, path filters, step-level `continue-on-error` — produce no
+  observable and therefore no verdict. See DR-8.
 - **FR-4** Classification must be overridable per repo via config file (FR-30).
 - **FR-5** Classification must be reported in output so a user can see and dispute it.
 - **FR-6** Attribute each changed path to its owning build module, where the build defines
@@ -304,7 +313,9 @@ than a shrug.
 
 Three integration surfaces, ascending in value:
 
-1. **CI check on PRs.** Obvious, lowest value — the change already landed.
+1. **CI check on PRs.** Obvious, lowest value — the change already landed. Also the most
+   exposed: astroturf's verdict blocks only if its own job runs, and a workflow edit that
+   skips that job is outside what the replay can see (DR-8).
 2. **Pre-commit hook.** Catches it before it enters history.
 3. **Agent stop hook.** The agent is blocked from reporting success and handed the
    verdict: *"your fix is in the test file."* It retries with no human in the loop.

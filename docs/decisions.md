@@ -41,4 +41,38 @@ dynamically. Process in `RELEASING.md`.
 
 ---
 
-_Add new records below as DR-8, DR-9, …_
+## DR-8 — CI-workflow gate weakening is out of scope for the replay
+
+*Accepted 2026-09-02.*
+
+FR-3 classifies CI workflow files (`.github/workflows/*`) as `config`, and the
+source-only run reverts them to base. But the replay observable is the outcome of the
+*local build command* (`mvn test`, `./gradlew test`) — per-test results and build-local
+gate goals (JaCoCo, Checkstyle, enforcer). An agent can neuter a required check without
+touching any of that:
+
+- adding `if:` to the job or step that runs the suite,
+- a `paths:` / `paths-ignore:` filter that excludes the PR's files,
+- `continue-on-error: true` on the test step,
+- renaming a required check, or adding a second job with the same name that always
+  passes.
+
+None of these change `mvn test`, so the replay produces no observable and therefore no
+verdict. §10 surface 1 (astroturf as a PR check) is itself exposed to this: if the job
+carrying astroturf is skipped, its verdict never blocks.
+
+Decision: this stays out of scope. Covering it means statically interpreting workflow
+YAML against branch-protection rules — a different mechanism against a different
+adversary (misconfiguration, usually accidental), and "not a config parser" (§3) is
+load-bearing. The static pre-filter (§4.1) already flags an added `continue-on-error`
+in a config diff as a suspected weakening, but that is a non-blocking heuristic, not a
+replay result.
+
+The adjacency is covered by [Avi Seth's `greenwash`](https://pypi.org/project/greenwash/),
+a static audit of GitHub Actions YAML against branch protection that answers "can this
+required check report green without ever running?". His tool audits whether the gate can
+fire; astroturf audits whether the code passing through the gate earned it. Run both.
+
+---
+
+_Add new records below as DR-9, DR-10, …_

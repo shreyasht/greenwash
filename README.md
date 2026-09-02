@@ -189,6 +189,11 @@ manual wiring:
   outcome, so v0.1 reports `HONEST_FIX`. Being fixed via a second observable.
 - **Untracked files are excluded.** `git stash create` doesn't capture them; you get a
   warning.
+- **CI-workflow gate weakening is invisible to the replay.** astroturf runs the build
+  command it's given; it doesn't read `.github/workflows` to check whether the job
+  carrying a required check can be skipped (`if:`, path filters, `continue-on-error`,
+  renamed checks). That's a static-audit problem — see
+  [`greenwash`](https://pypi.org/project/greenwash/) — and DR-8 in `docs/decisions.md`.
 - **Single-module test identity.** Tests are keyed `(classname, name)`, so identically
   named test classes in different modules can collide. Module-aware keys are next.
 
