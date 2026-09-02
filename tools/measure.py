@@ -39,7 +39,9 @@ import json
 import shutil
 import subprocess
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 # A commit is in-scope only if it changes something under both trees. Kept broad
@@ -198,6 +200,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, default=Path("measure-results.json"), help="per-sha result cache (resumable)")
     ap.add_argument("--greenwash", default=None, help="path to the greenwash CLI (default: <repo>/../.venv/bin/greenwash, then PATH)")
     ap.add_argument("--commit-timeout", type=int, default=3600, help="hard wall-clock cap per commit in seconds (default 3600)")
+    ap.add_argument("--jobs", type=int, default=1, help="commits to measure concurrently, each greenwash run isolated in its own worktree (default 1)")
     ap.add_argument("--list-only", action="store_true", help="print the selected commits and exit")
     args = ap.parse_args(argv)
 
@@ -222,23 +225,41 @@ def main(argv: list[str] | None = None) -> int:
 
     pending = [s for s in shas if s not in cache["results"]]
     done = len(shas) - len(pending)
+    jobs = max(1, args.jobs)
     print(f"greenwash: {gw}")
-    print(f"{len(shas)} commits selected  |  {done} cached  |  {len(pending)} to run")
+    print(f"{len(shas)} commits selected  |  {done} cached  |  {len(pending)} to run  |  jobs={jobs}")
+    if jobs > 1:
+        print(f"note: each job runs its own build; set -DforkCount to ~{max(1, 8 // jobs)} in "
+              f".greenwash.toml so {jobs} concurrent builds do not oversubscribe the machine")
 
+    lock = threading.Lock()
     durations: list[float] = []
-    for i, sha in enumerate(pending, 1):
-        print(f"[{i}/{len(pending)}] {commit_summary(repo, sha)}", flush=True)
-        rec = run_one(gw, repo, sha, args.commit_timeout)
-        cache["results"][sha] = rec
-        save_cache(args.out, cache)
-        if isinstance(rec.get("duration_s"), (int, float)):
-            durations.append(float(rec["duration_s"]))
-        eta = ""
-        if durations:
-            avg = sum(durations) / len(durations)
-            secs = avg * (len(pending) - i)
-            eta = f"   eta ~{secs / 3600:.1f}h" if secs >= 3600 else f"   eta ~{secs / 60:.0f}m"
-        print(f"      -> {rec['verdict']}   {rec.get('duration_s', '?')}s{eta}", flush=True)
+    n_pending = len(pending)
+    state = {"finished": 0}
+
+    def work(sha: str) -> None:
+        try:
+            rec = run_one(gw, repo, sha, args.commit_timeout)
+        except Exception as exc:  # keep one bad commit from killing the run
+            rec = {"sha": sha, "verdict": "ERROR", "stderr_tail": repr(exc)}
+        with lock:
+            cache["results"][sha] = rec
+            save_cache(args.out, cache)
+            state["finished"] += 1
+            i = state["finished"]
+            if isinstance(rec.get("duration_s"), (int, float)):
+                durations.append(float(rec["duration_s"]))
+            eta = ""
+            if durations:
+                avg = sum(durations) / len(durations)
+                secs = avg * (n_pending - i) / jobs
+                eta = f"   eta ~{secs / 3600:.1f}h" if secs >= 3600 else f"   eta ~{secs / 60:.0f}m"
+            print(f"[{i}/{n_pending}] {rec['verdict']:<24} {rec.get('duration_s', '?')}s   "
+                  f"{sha[:12]}{eta}", flush=True)
+
+    with ThreadPoolExecutor(max_workers=jobs) as ex:
+        for _ in ex.map(work, pending):
+            pass
 
     report(cache, shas)
     return 0
