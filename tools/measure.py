@@ -44,10 +44,11 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-# A commit is in-scope only if it changes something under both trees. Kept broad
-# (not .../java) so config-under-src and resource changes still count.
-MAIN_PREFIXES = ("src/main/",)
-TEST_PREFIXES = ("src/test/",)
+# A commit is in-scope only if it changes something under both trees, at any
+# module depth (repo/src/... or repo/mod/src/...). Kept broad (not .../java) so
+# config-under-src and resource changes still count.
+MAIN_TREE = "src/main"
+TEST_TREE = "src/test"
 
 BLOCKING = {"FIX_IS_IN_THE_TESTS", "CONFIG_WEAKENED"}
 NOT_ANALYSABLE = {"ERROR", "TIMEOUT"}
@@ -65,21 +66,28 @@ def commit_summary(repo: Path, sha: str) -> str:
     return git(repo, "show", "-s", "--format=%h %ad %s", "--date=short", sha).strip()
 
 
+def _in_tree(path: str, tree: str) -> bool:
+    return path.startswith(tree + "/") or ("/" + tree + "/") in path
+
+
 def _touches_both(repo: Path, sha: str) -> bool:
     files = [f for f in git(
         repo, "show", "--no-renames", "--pretty=format:", "--name-only", sha
     ).splitlines() if f]
-    has_main = any(f.startswith(p) for f in files for p in MAIN_PREFIXES)
-    has_test = any(f.startswith(p) for f in files for p in TEST_PREFIXES)
+    has_main = any(_in_tree(f, MAIN_TREE) for f in files)
+    has_test = any(_in_tree(f, TEST_TREE) for f in files)
     return has_main and has_test
 
 
 def select_commits(repo: Path, n: int, since: str | None) -> list[str]:
-    """Newest `n` non-merge first-parent commits that touch both trees."""
+    """Newest `n` non-merge first-parent commits that touch both trees, at any
+    module depth."""
     args = ["log", "--first-parent", "--no-merges", "--format=%H"]
     if since:
         args.append(f"--since={since}")
-    args += ["--", "src/main", "src/test"]
+    # bare form catches a top-level src/tree; glob form catches module/src/tree.
+    # The real gate is _touches_both; these pathspecs only narrow the candidates.
+    args += ["--", MAIN_TREE, TEST_TREE, f"**/{MAIN_TREE}/**", f"**/{TEST_TREE}/**"]
     picked: list[str] = []
     for sha in git(repo, *args).splitlines():
         if sha and _touches_both(repo, sha):
