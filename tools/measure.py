@@ -229,8 +229,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"greenwash: {gw}")
     print(f"{len(shas)} commits selected  |  {done} cached  |  {len(pending)} to run  |  jobs={jobs}")
     if jobs > 1:
-        print(f"note: each job runs its own build; set -DforkCount to ~{max(1, 8 // jobs)} in "
-              f".greenwash.toml so {jobs} concurrent builds do not oversubscribe the machine")
+        print(f"note: {jobs} builds run at once; keep jobs x surefire-forkCount near your core "
+              f"count in .greenwash.toml so the machine is not oversubscribed")
 
     lock = threading.Lock()
     durations: list[float] = []
