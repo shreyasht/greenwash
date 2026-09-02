@@ -1,8 +1,8 @@
 """Config file loading (REQUIREMENTS_1.md §6.6 FR-30; format per DR-6).
 
-`.greenwash.toml` at repo root, parsed with stdlib `tomllib`. Keys: build command,
+`.astroturf.toml` at repo root, parsed with stdlib `tomllib`. Keys: build command,
 report globs, classification overrides, confirmation count, module scoping, per-verdict
-exit behaviour. All keys optional; every value has a default so greenwash runs with no
+exit behaviour. All keys optional; every value has a default so astroturf runs with no
 config file at all.
 """
 
@@ -13,7 +13,7 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-CONFIG_FILENAME = ".greenwash.toml"
+CONFIG_FILENAME = ".astroturf.toml"
 
 
 @dataclass
@@ -38,8 +38,8 @@ def _as_command(value) -> list[str] | None:
 
 
 def load(repo_root: str) -> Config:
-    """Load .greenwash.toml from the repo root. Every key is optional; a missing file
-    yields an all-defaults Config so greenwash runs with no config at all."""
+    """Load .astroturf.toml from the repo root. Every key is optional; a missing file
+    yields an all-defaults Config so astroturf runs with no config at all."""
     path = Path(repo_root) / CONFIG_FILENAME
     if not path.is_file():
         return Config()

@@ -1,9 +1,9 @@
-# greenwash CI check (FR-35). Copy to .github/workflows/ in the repo you want to guard.
+# astroturf CI check (FR-35). Copy to .github/workflows/ in the repo you want to guard.
 #
-# Fails the job on FIX_IS_IN_THE_TESTS or CONFIG_WEAKENED (greenwash exit 1); every other
+# Fails the job on FIX_IS_IN_THE_TESTS or CONFIG_WEAKENED (astroturf exit 1); every other
 # verdict is informational (exit 0). Adjust the java-version / build tooling to match your
 # project.
-name: greenwash
+name: astroturf
 
 on:
   pull_request:
@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # greenwash needs base..head
+          fetch-depth: 0  # astroturf needs base..head
 
       - uses: actions/setup-python@v5
         with:
@@ -25,14 +25,14 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install greenwash
-        run: pip install "git+https://github.com/shreyasht/greenwash@main"
+      - name: Install astroturf
+        run: pip install "git+https://github.com/shreyasht/astroturf@main"
 
       - name: Verify the diff
         run: |
           status=0
-          greenwash \
+          astroturf \
             --range "${{ github.event.pull_request.base.sha }}..${{ github.sha }}" \
-            --json > greenwash-report.json || status=$?
-          cat greenwash-report.json
+            --json > astroturf-report.json || status=$?
+          cat astroturf-report.json
           exit $status

@@ -2,7 +2,7 @@
 
 import unittest
 
-from greenwash.verdict import (
+from astroturf.verdict import (
     Finding,
     Verdict,
     exit_code,

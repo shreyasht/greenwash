@@ -2,9 +2,9 @@
 
 import unittest
 
-from greenwash.flake import ConfirmMode, confirm
-from greenwash.reports import Outcome, TestKey
-from greenwash.verdict import Finding, Verdict
+from astroturf.flake import ConfirmMode, confirm
+from astroturf.reports import Outcome, TestKey
+from astroturf.verdict import Finding, Verdict
 
 KEY = TestKey(".", "CalcTest", "addsOne")
 

@@ -17,8 +17,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from enum import Enum
 
-from greenwash.reports import Outcome, TestKey
-from greenwash.verdict import Finding
+from astroturf.reports import Outcome, TestKey
+from astroturf.verdict import Finding
 
 _FAILING = frozenset({Outcome.FAIL, Outcome.ERROR})
 

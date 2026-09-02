@@ -12,12 +12,14 @@ import os
 import shlex
 import sys
 
-from greenwash import config as config_mod
-from greenwash import orchestrate, output, verdict
+from astroturf import __version__
+from astroturf import config as config_mod
+from astroturf import orchestrate, output, verdict
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="greenwash", description=__doc__)
+    p = argparse.ArgumentParser(prog="astroturf", description=__doc__)
+    p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     src = p.add_mutually_exclusive_group()
     src.add_argument("--range", metavar="BASE..HEAD", help="verify a commit range")
     src.add_argument("--commit", metavar="SHA", help="verify a single commit")
@@ -61,10 +63,10 @@ def main(argv: list[str]) -> int:
     try:
         return run(argv)
     except Exception as exc:  # NFR-4: fail open
-        print(f"greenwash: internal error, exiting 0 without a verdict: {exc}", file=sys.stderr)
+        print(f"astroturf: internal error, exiting 0 without a verdict: {exc}", file=sys.stderr)
         return 0
 
 
 def _console() -> None:
-    """Entry point for the installed `greenwash` command."""
+    """Entry point for the installed `astroturf` command."""
     sys.exit(main(sys.argv[1:]))

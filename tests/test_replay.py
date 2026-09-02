@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from greenwash.replay import (
+from astroturf.replay import (
     MAVEN_DEFAULT_CMD,
     _is_gradle,
     _is_maven,
@@ -66,7 +66,7 @@ class TestFilterTest(unittest.TestCase):
 
 class DefaultBuildCommandTest(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="greenwash-dbc-")
+        self.tmp = tempfile.mkdtemp(prefix="astroturf-dbc-")
 
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
@@ -135,7 +135,7 @@ class FailingGoalsTest(unittest.TestCase):
 
 class DiscoverReportsTest(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="greenwash-replay-")
+        self.tmp = tempfile.mkdtemp(prefix="astroturf-replay-")
 
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
@@ -155,7 +155,7 @@ class DiscoverReportsTest(unittest.TestCase):
 
 class TimeoutTest(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="greenwash-replay-")
+        self.tmp = tempfile.mkdtemp(prefix="astroturf-replay-")
 
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)

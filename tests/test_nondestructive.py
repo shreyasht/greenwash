@@ -1,4 +1,4 @@
-"""NFR-5 property test: a greenwash run leaves the repo's working tree, index, and stash
+"""NFR-5 property test: a astroturf run leaves the repo's working tree, index, and stash
 list byte-identical. This is the foundation everything else trusts (BUILD_PLAN.md §3
 step 1) and must stay green for the life of the project.
 """
@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from greenwash import revisions
+from astroturf import revisions
 
 
 def git(repo: Path, *args: str) -> str:
@@ -21,7 +21,7 @@ def git(repo: Path, *args: str) -> str:
 
 class NonDestructiveTest(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="greenwash-test-")
+        self.tmp = tempfile.mkdtemp(prefix="astroturf-test-")
         self.repo = Path(self.tmp)
         git(self.repo, "init", "-q", "-b", "main")
         git(self.repo, "config", "user.email", "t@t")

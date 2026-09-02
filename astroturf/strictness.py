@@ -91,7 +91,7 @@ def _analysable(path: str, kind: str) -> bool:
 
 def weakening_signals(path: str, kind: str, diff: str) -> list[str]:
     """Concrete weakening signals in one file's diff. Empty for a file with none, and
-    empty for a file greenwash cannot statically read (use `unrecognised` to tell the
+    empty for a file astroturf cannot statically read (use `unrecognised` to tell the
     two apart)."""
     added, removed = _added(diff), _removed(diff)
     if kind == "test" and path.endswith(_JVM_TEST_EXT):

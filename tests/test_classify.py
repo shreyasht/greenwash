@@ -5,12 +5,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from greenwash.classify import Kind, classify
+from astroturf.classify import Kind, classify
 
 
 class ClassifyTest(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="greenwash-classify-")
+        self.tmp = tempfile.mkdtemp(prefix="astroturf-classify-")
 
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)

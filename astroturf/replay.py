@@ -25,7 +25,7 @@ from pathlib import Path
 # but do not abort the build, so gate goals (jacoco:check, checkstyle:check, enforce, …)
 # still execute and their pass/fail stays observable. The per-test observable reads the
 # XML, not the exit code. v0.2 gate work may move the phase to `verify`; users override
-# the whole command via .greenwash.toml (FR-30).
+# the whole command via .astroturf.toml (FR-30).
 MAVEN_DEFAULT_CMD = ["mvn", "-B", "-Dmaven.test.failure.ignore=true", "test"]
 
 # --continue: keep running later tasks after one fails, so gate tasks

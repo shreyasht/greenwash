@@ -1,4 +1,4 @@
-# greenwash — Agentic Build Plan
+# astroturf — Agentic Build Plan
 
 **Status:** steps 1-14 code-complete, green on CI (branch `scaffold-v0.1`, not yet
 merged). Outstanding: the two human measurements in §4 (§9 INCONCLUSIVE_COMPILE rate,
@@ -18,7 +18,7 @@ The agent will lose these mid-run. They must live in a file it reloads every ses
 
 - **Python stdlib only** (NFR-3). No pip, no third-party imports, no venv requirement.
   Must run behind a corporate proxy with zero package access.
-- **No LLM in `greenwash/` source** (NFR-1). The verification path is deterministic.
+- **No LLM in `astroturf/` source** (NFR-1). The verification path is deterministic.
   An LLM may assist explanation later, never judgement.
 - **No network calls, no telemetry, no API keys** (NFR-2).
 - **Fail open** (NFR-4): a top-level `except` in the CLI exits `0` with a diagnostic
@@ -27,15 +27,15 @@ The agent will lose these mid-run. They must live in a file it reloads every ses
   All runs happen in isolated `git worktree` checkouts.
 - **Fixtures are ground truth.** The agent may **never** edit a fixture's assertions,
   expected verdict, or planted diff to make a test pass. This is exactly the reward-hack
-  greenwash exists to detect — doing it here invalidates the whole project.
+  astroturf exists to detect — doing it here invalidates the whole project.
 
 ### Open decision — config file format
 
-`.greenwash.yml` (FR-30) implies YAML, but there is no YAML parser in the stdlib.
+`.astroturf.yml` (FR-30) implies YAML, but there is no YAML parser in the stdlib.
 Options, pick one and record it in a decision note:
 
-1. Use TOML, `.greenwash.toml`, parsed with `tomllib` (stdlib since Python 3.11).
-   Cleanest. Costs a rename away from the spec's `.greenwash.yml`.
+1. Use TOML, `.astroturf.toml`, parsed with `tomllib` (stdlib since Python 3.11).
+   Cleanest. Costs a rename away from the spec's `.astroturf.yml`.
 2. Hand-write a parser for a restricted YAML subset (scalars, one-level maps, lists).
    Keeps the spec name. More code to maintain and test.
 3. Support both filenames, TOML semantics.
@@ -83,9 +83,9 @@ minus timestamps.
 ## 2. Module layout
 
 ```
-greenwash/
+astroturf/
   __init__.py
-  __main__.py        # python -m greenwash
+  __main__.py        # python -m astroturf
   cli.py             # arg parsing, top-level fail-open wrapper, exit codes (§6.7)
   classify.py        # FR-1..6  : path -> source|test|config|neutral, attributed to module
   revisions.py       # FR-7..11 : input modes, git worktree setup/teardown, untracked warn
@@ -94,7 +94,7 @@ greenwash/
   flake.py           # FR-26..29: K confirmation reruns per side, per-finding demotion
   verdict.py         # §4.3     : findings list -> headline verdict by precedence
   output.py          # FR-31..33: human stdout (names, not counts) + versioned JSON
-  config.py          # FR-30    : load .greenwash.toml, apply overrides
+  config.py          # FR-30    : load .astroturf.toml, apply overrides
 fixtures/            # section 1
 tests/               # stdlib unittest (NOT pytest — no third-party deps)
 hooks/
@@ -169,11 +169,11 @@ known. All other steps (1-13) are code-complete and green on CI.
 
 ## 5. The Stop hook (FR-36 / §10 surface 3)
 
-This is why greenwash is a product and not a lint rule. Build for it early even though
+This is why astroturf is a product and not a lint rule. Build for it early even though
 it serves the fewest users at first.
 
 - Claude Code `Stop` hook fires when the agent tries to end its turn.
-- Hook runs greenwash on the working-tree diff.
+- Hook runs astroturf on the working-tree diff.
 - On `FIX_IS_IN_THE_TESTS` or `CONFIG_WEAKENED`: hook blocks the stop and returns the
   verdict text to the agent (`"your fix is in the test file"`) so it retries with no
   human in the loop.
@@ -184,7 +184,7 @@ it serves the fewest users at first.
 
 ## 6. Dogfooding
 
-Once step 7 (v0.1) is green: run greenwash on greenwash's own commits. If it cannot
+Once step 7 (v0.1) is green: run astroturf on astroturf's own commits. If it cannot
 verify its own diffs, it is not done. Wire it as the pre-commit hook on this repo.
 
 ---
@@ -194,7 +194,7 @@ verify its own diffs, it is not done. Wire it as the pre-commit hook on this rep
 _Append one line per completed step. Keep newest last._
 
 - 2026-08-27 — plan written, no code yet.
-- 2026-08-27 — scaffold: CLAUDE.md guardrails, DR-6 (config=TOML), `greenwash/` package
+- 2026-08-27 — scaffold: CLAUDE.md guardrails, DR-6 (config=TOML), `astroturf/` package
   with NotImplementedError stubs for all 11 modules, `tests/` (smoke green; fixture +
   NFR-5 tests skip-stubbed), v0.1 fixture dirs with SPEC.md + expected.json (repo/ and
   change.patch still todo), hooks/ stubs. `python -m unittest discover -s tests`: 8 tests,
@@ -234,7 +234,7 @@ _Append one line per completed step. Keep newest last._
   Suite: 45 tests, 41 pass / 4 skip.
 - 2026-08-27 — step 5 done: `verdict.py` — `headline()` picks the highest-precedence
   verdict across all modules (§4.3, DR-4), HONEST_FIX on an empty list. `exit_code()` /
-  `is_blocking()` apply the §5 blocking rule with per-verdict `.greenwash.toml` overrides
+  `is_blocking()` apply the §5 blocking rule with per-verdict `.astroturf.toml` overrides
   (§6.7). `resolve(...)` assembles the full findings list plus synthetic state findings:
   NO_TEST_CHANGES when nothing testable changed, INCONCLUSIVE_COMPILE when the base
   tests don't compile (gate findings still outrank it, §9), INCONCLUSIVE_BUILD on no
@@ -249,9 +249,9 @@ _Append one line per completed step. Keep newest last._
   classification table with reasons (FR-5), and warnings (FR-31). `render_json()` emits
   `schema_version` first, `headline_verdict` separate from the `findings` list (FR-32,
   FR-33), plus additive `blocking` / `exit_code`; lists sorted for byte-determinism.
-  `exit_overrides` from `.greenwash.toml` flow through both. Suite: 68 tests, 64 pass /
+  `exit_overrides` from `.astroturf.toml` flow through both. Suite: 68 tests, 64 pass /
   4 skip.
-- 2026-09-01 — step 7 done: **v0.1 converges.** `config.py` loads `.greenwash.toml`
+- 2026-09-01 — step 7 done: **v0.1 converges.** `config.py` loads `.astroturf.toml`
   (`tomllib`, all keys optional, string-or-list build command). `replay.py` gains
   `RunResult.compile_failed` (§9). `orchestrate.py` runs the experiment: resolve →
   classify → skip if no test/config touched (FR-13) → run A (head) and run B (head with
@@ -260,7 +260,7 @@ _Append one line per completed step. Keep newest last._
   `--keep`, exit codes with config overrides, fail-open wrapper. Hermetic
   `tests/test_orchestrate.py` drives all four verdicts + non-destructive + CLI exit
   through a stdlib fake build (no JVM). v0.1 Maven `fixtures/` rebuilt as base/ + head/
-  trees with `tests/test_fixtures.py` running greenwash for real (skipped locally without
+  trees with `tests/test_fixtures.py` running astroturf for real (skipped locally without
   `mvn`, run in CI via `.github/workflows/ci.yml`). Suite: 74 tests, 70 pass / 4 skip
   locally; **all 74 green on CI** including the 4 real Maven builds (run 33525544046).
   Harness gotcha fixed: `shutil.copytree` default `copy2` preserved the shared checkout
@@ -268,8 +268,8 @@ _Append one line per completed step. Keep newest last._
   `git add -A` staged nothing for `fix-in-tests` — now copies without mtime and bumps
   every file's mtime forward.
   Branch `scaffold-v0.1` pushed; open the PR when ready. **v0.1 milestone: done.**
-- 2026-09-01 — ran greenwash against a real external repo (`mentra-boot`, Gradle +
-  Spring Boot) via a 5-line `.greenwash.toml`. Verdict on commit `c7d0afc` (a test-only
+- 2026-09-01 — ran astroturf against a real external repo (`mentra-boot`, Gradle +
+  Spring Boot) via a 5-line `.astroturf.toml`. Verdict on commit `c7d0afc` (a test-only
   `@SpringBootTest` exclusion): `FIX_IS_IN_THE_TESTS` — run A green, run B (test reverted)
   fails to load the Spring context. NFR-5 held (working tree / worktree list / stash
   untouched). Confirms classify + Gradle report parsing + worktree isolation work on a
@@ -289,7 +289,7 @@ _Append one line per completed step. Keep newest last._
   the Gradle command (`./gradlew test --continue --console=plain`, or bare `gradle` with
   no wrapper) when a gradle marker is at the root, else the Maven default. `orchestrate`
   uses it when neither CLI nor config supplies a build command — so a plain Gradle repo
-  needs no `.greenwash.toml` at all. Suite: 91 tests, 87 pass / 4 skip.
+  needs no `.astroturf.toml` at all. Suite: 91 tests, 87 pass / 4 skip.
 - 2026-09-01 — step 8 done: **gate observable / CONFIG_WEAKENED.** `_parse_failing_goals`
   now reads Gradle failing tasks (`Execution failed for task ':x'`, `> Task :x FAILED`)
   alongside Maven `Failed to execute goal GAV:goal`, and filters out test-execution
@@ -299,7 +299,7 @@ _Append one line per completed step. Keep newest last._
   config-only revert run (`B_cfg`) — no test compilation needed, so CONFIG_WEAKENED stays
   detectable (§9). Hermetic test: a `gate.json` pass-ratio threshold lowered head-side →
   `CONFIG_WEAKENED`. Maven fixture `config-weakened` (JaCoCo `check` 0.80→0.00, carries
-  its own `.greenwash.toml` for `mvn verify`); `test_fixtures.py` now loads each
+  its own `.astroturf.toml` for `mvn verify`); `test_fixtures.py` now loads each
   fixture's config. Gate-finding module attribution is still `.` — multi-module mapping
   is step 10. Suite: 95 tests, 90 pass / 5 skip (Maven fixtures).
 - 2026-09-01 — steps 10-14:
@@ -308,13 +308,13 @@ _Append one line per completed step. Keep newest last._
     `multi-module` (finding attributed to `svc-a`, `svc-b`'s same-named class never
     cross-compared). Maven gate→module still `.` (needs pom parsing).
   - **11 packaging/interfaces:** `pyproject.toml` (pip-installable, stdlib only, console
-    scripts `greenwash` + `greenwash-stop-hook`). Real `hooks/github-actions/greenwash.yml`
+    scripts `astroturf` + `astroturf-stop-hook`). Real `hooks/github-actions/astroturf.yml`
     and `hooks/pre-commit`. `test_config.py` round-trip, `test_json_contract.py` pins the
     schema-1 shape. setup-java@v5.
-  - **12 Stop hook (FR-36):** `greenwash/stophook.py` — `evaluate(report, stop_hook_active)`
+  - **12 Stop hook (FR-36):** `astroturf/stophook.py` — `evaluate(report, stop_hook_active)`
     returns the Claude Code `block` decision on a blocking verdict (never twice a turn),
     else None; `main()` fail-open. `test_stop_hook.py`.
-  - **13 static pre-filter (§4.1):** `greenwash/strictness.py` — `analyse()` reports
+  - **13 static pre-filter (§4.1):** `astroturf/strictness.py` — `analyse()` reports
     weakening signals (disabled test, assertion removed/changed, threshold decreased,
     rule block removed, continue-on-error) and separately the files it cannot read.
     `orchestrate` skips the replay only when opted in (`--prefilter` / `prefilter=true`)
@@ -327,3 +327,18 @@ _Append one line per completed step. Keep newest last._
     full design (promote to a real verdict? AST vs diff?) is still gated on the §9
     INCONCLUSIVE_COMPILE-rate measurement below.
   Suite: 129 tests, 123 pass / 6 skip (Maven fixtures).
+- 2026-09-02 — measurement harness + distribution:
+  - `tools/measure.py` — runs `astroturf --commit <sha> --json` across the newest N
+    commits of a real repo that touch both src/main and src/test (any module depth),
+    resumable per-sha cache, `--jobs` for concurrency; tallies the §9 INCONCLUSIVE_COMPILE
+    rate and every blocking verdict for the NFR-6 review. Not imported by `astroturf/`.
+    First corpus: apache/commons-lang, newest 25 commits → 24 HONEST_FIX,
+    1 TESTS_REMOVED_OR_SKIPPED (a same-class test-method rename — non-blocking),
+    0 INCONCLUSIVE_COMPILE, 0 blocking. commons-lang is near-zero signature churn, so
+    gson + assertj-core were added to actually stress the compile wall.
+  - Distribution (DR-7): dual-track. PyPI name `astroturf` (`astroturf` taken), import
+    and console scripts unchanged. `__version__` is the single source of truth, read
+    dynamically by `pyproject.toml`. `--version` flag. `tools/build-zipapp.sh` produces
+    the stdlib-only `astroturf.pyz` offline path (NFR-3). `.github/workflows/release.yml`
+    builds wheel + sdist + zipapp on a `v*` tag and publishes to PyPI via Trusted
+    Publishing (OIDC, no token — NFR-2). Process in `RELEASING.md`.

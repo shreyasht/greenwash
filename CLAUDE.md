@@ -1,4 +1,4 @@
-# greenwash — agent instructions
+# astroturf — agent instructions
 
 Deterministic verifier: *does the source change, on its own, still satisfy the checks?*
 Full spec in `REQUIREMENTS_1.md`. Build approach in `BUILD_PLAN.md`. Follow both.
@@ -7,10 +7,10 @@ Full spec in `REQUIREMENTS_1.md`. Build approach in `BUILD_PLAN.md`. Follow both
 
 - **Python stdlib only** (NFR-3). Target Python 3.11+ (`tomllib` is used). No pip, no
   third-party imports anywhere, including tests. Tests use `unittest`, not `pytest`.
-- **No LLM / no network in `greenwash/` source** (NFR-1, NFR-2). The verification path is
+- **No LLM / no network in `astroturf/` source** (NFR-1, NFR-2). The verification path is
   pure and deterministic: same inputs, same verdict. No telemetry, no API keys.
 - **Fail open** (NFR-4). `cli.py` wraps everything in a top-level handler that exits `0`
-  with a diagnostic on stderr. greenwash must never be why a build breaks.
+  with a diagnostic on stderr. astroturf must never be why a build breaks.
 - **Non-destructive** (NFR-5). Never touch the user's working tree, index, or stash.
   All build runs happen in `git worktree` checkouts under a temp dir. There is a property
   test enforcing this — keep it green.

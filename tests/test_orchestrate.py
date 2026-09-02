@@ -15,11 +15,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from greenwash import cli
-from greenwash.config import Config
-from greenwash.orchestrate import Options, verify
-from greenwash.output import _finding_subject
-from greenwash.verdict import Verdict
+from astroturf import cli
+from astroturf.config import Config
+from astroturf.orchestrate import Options, verify
+from astroturf.output import _finding_subject
+from astroturf.verdict import Verdict
 
 RUNTESTS = '''import json, os, sys
 os.makedirs("target/surefire-reports", exist_ok=True)
@@ -73,7 +73,7 @@ OVERRIDES = {"calc.py": "source", "cases.json": "test"}
 
 class OrchestrateTest(unittest.TestCase):
     def _repo(self, base_files, head_files):
-        d = Path(tempfile.mkdtemp(prefix="greenwash-e2e-"))
+        d = Path(tempfile.mkdtemp(prefix="astroturf-e2e-"))
         self.addCleanup(shutil.rmtree, d, ignore_errors=True)
 
         def git(*a):
@@ -204,8 +204,8 @@ class OrchestrateTest(unittest.TestCase):
             '"calc.py" = "source"\n'
             '"cases.json" = "test"\n'
         )
-        base = {**self._b(BUG, ONE), ".greenwash.toml": toml}
-        head = {**self._b(BUG, ONE_HACKED), ".greenwash.toml": toml}
+        base = {**self._b(BUG, ONE), ".astroturf.toml": toml}
+        head = {**self._b(BUG, ONE_HACKED), ".astroturf.toml": toml}
         root, sha = self._repo(base, head)
 
         old = os.getcwd()

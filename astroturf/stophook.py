@@ -1,6 +1,6 @@
 """Claude Code `Stop` hook (REQUIREMENTS_1.md FR-36, §10 surface 3).
 
-Runs greenwash on the working tree when the agent tries to end its turn. On a blocking
+Runs astroturf on the working tree when the agent tries to end its turn. On a blocking
 verdict it returns a `block` decision with the verdict text, so the agent is handed the
 reason and retries with no human in the loop. Every other verdict, and any error, lets
 the agent stop (NFR-4 fail open).
@@ -18,7 +18,7 @@ import sys
 BLOCK_GUIDANCE = {
     "FIX_IS_IN_THE_TESTS": (
         "The source change alone does not make these tests pass — the fix is in the test "
-        "files. Move it into the source and run greenwash again."
+        "files. Move it into the source and run astroturf again."
     ),
     "CONFIG_WEAKENED": (
         "A gate that failed under the base config passes under your config change. "
@@ -29,7 +29,7 @@ BLOCK_GUIDANCE = {
 
 def format_reason(report: dict) -> str:
     verdict = report.get("headline_verdict", "?")
-    lines = [f"greenwash blocked completion: {verdict}."]
+    lines = [f"astroturf blocked completion: {verdict}."]
     for finding in report.get("findings", []):
         detail = finding.get("detail", {})
         subject = detail.get("goal") or ".".join(
@@ -53,10 +53,10 @@ def evaluate(report: dict | None, *, stop_hook_active: bool) -> dict | None:
     return {"decision": "block", "reason": format_reason(report)}
 
 
-def _run_greenwash(cwd: str, timeout: int) -> dict | None:
+def _run_astroturf(cwd: str, timeout: int) -> dict | None:
     try:
         proc = subprocess.run(
-            ["greenwash", "--json"], cwd=cwd,
+            ["astroturf", "--json"], cwd=cwd,
             capture_output=True, text=True, timeout=timeout,
         )
         return json.loads(proc.stdout)
@@ -64,7 +64,7 @@ def _run_greenwash(cwd: str, timeout: int) -> dict | None:
         return None
 
 
-def main(stdin_text: str | None = None, *, runner=_run_greenwash) -> int:
+def main(stdin_text: str | None = None, *, runner=_run_astroturf) -> int:
     try:
         raw = stdin_text if stdin_text is not None else sys.stdin.read()
         payload = json.loads(raw)
@@ -73,7 +73,7 @@ def main(stdin_text: str | None = None, *, runner=_run_greenwash) -> int:
 
     report = runner(
         payload.get("cwd") or os.getcwd(),
-        int(os.environ.get("GREENWASH_HOOK_TIMEOUT", "1800")),
+        int(os.environ.get("ASTROTURF_HOOK_TIMEOUT", "1800")),
     )
     decision = evaluate(report, stop_hook_active=bool(payload.get("stop_hook_active")))
     if decision is not None:

@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
-WORKTREE_PREFIX = "greenwash-wt-"
+WORKTREE_PREFIX = "astroturf-wt-"
 
 
 class InputMode(str, Enum):
@@ -180,7 +180,7 @@ def worktree(
         yield wt_path
     finally:
         if keep:
-            print(f"greenwash: kept worktree at {wt_path}")
+            print(f"astroturf: kept worktree at {wt_path}")
         else:
             _git(repo_root, "worktree", "remove", "--force", wt_path, check=False)
             shutil.rmtree(wt_path, ignore_errors=True)

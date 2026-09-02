@@ -14,9 +14,9 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 
-from greenwash import JSON_SCHEMA_VERSION
-from greenwash.classify import ClassifiedPath
-from greenwash.verdict import PRECEDENCE, Finding, Verdict, exit_code
+from astroturf import JSON_SCHEMA_VERSION
+from astroturf.classify import ClassifiedPath
+from astroturf.verdict import PRECEDENCE, Finding, Verdict, exit_code
 
 
 @dataclass
@@ -96,7 +96,7 @@ def render_human(report: Report, *, exit_overrides: dict[str, int] | None = None
     code = exit_code(report.headline, exit_overrides)
     disposition = f"build fails: exit {code}" if code != 0 else f"build passes: exit {code}"
     lines = [
-        f"greenwash: {report.headline.value}  ({disposition})",
+        f"astroturf: {report.headline.value}  ({disposition})",
         "",
         _HEADLINE_SUMMARY.get(report.headline, ""),
     ]
@@ -115,7 +115,7 @@ def render_human(report: Report, *, exit_overrides: dict[str, int] | None = None
                 lines.append(f"        {explanation}")
 
     if report.classifications:
-        lines += ["", "Classification (dispute in .greenwash.toml):"]
+        lines += ["", "Classification (dispute in .astroturf.toml):"]
         width = max(len(c.kind.value) for c in report.classifications)
         for c in sorted(report.classifications, key=lambda c: (c.module, c.path)):
             lines.append(f"  {c.kind.value:<{width}}  {c.path}    {c.reason}")

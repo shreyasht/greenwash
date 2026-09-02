@@ -1,11 +1,11 @@
-"""Claude Code Stop hook decision logic (FR-36). Pure — no real greenwash run."""
+"""Claude Code Stop hook decision logic (FR-36). Pure — no real astroturf run."""
 
 import contextlib
 import io
 import json
 import unittest
 
-from greenwash import stophook
+from astroturf import stophook
 
 BLOCKING = {
     "blocking": True,

@@ -8,8 +8,8 @@ import unittest
 
 class SmokeTest(unittest.TestCase):
     def test_package_imports(self):
-        import greenwash  # noqa: F401
-        from greenwash import (  # noqa: F401
+        import astroturf  # noqa: F401
+        from astroturf import (  # noqa: F401
             classify, cli, config, flake, orchestrate, output, replay, reports, revisions, verdict,
         )
 
@@ -20,7 +20,7 @@ class SmokeTest(unittest.TestCase):
     def test_fail_open_wrapper_never_raises(self):
         # NFR-4: main() must never raise. Run against this repo's own working tree; with
         # nothing testable changed it returns 0 (NO_TEST_CHANGES).
-        from greenwash.cli import main
+        from astroturf.cli import main
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(main([]), 0)
 

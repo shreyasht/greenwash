@@ -16,7 +16,7 @@ from enum import Enum
 from fnmatch import fnmatch
 from pathlib import Path, PurePosixPath
 
-from greenwash.revisions import WORKTREE_PREFIX
+from astroturf.revisions import WORKTREE_PREFIX
 
 
 class Kind(str, Enum):

@@ -2,7 +2,7 @@
 
 import unittest
 
-from greenwash.strictness import analyse, weakening_signals
+from astroturf.strictness import analyse, weakening_signals
 
 
 def diff(removed=(), added=()):

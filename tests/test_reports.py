@@ -5,15 +5,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from greenwash.replay import RunResult
-from greenwash.reports import (
+from astroturf.replay import RunResult
+from astroturf.reports import (
     Outcome,
     TestKey,
     compare,
     compare_gates,
     parse_reports,
 )
-from greenwash.verdict import Verdict
+from astroturf.verdict import Verdict
 
 
 def _suite(classname, cases):
@@ -33,7 +33,7 @@ ERR = '  <testcase name="{n}" classname="{c}"><error message="x"/></testcase>\n'
 
 class ParseTest(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="greenwash-reports-")
+        self.tmp = tempfile.mkdtemp(prefix="astroturf-reports-")
 
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)

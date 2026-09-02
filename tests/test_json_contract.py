@@ -8,9 +8,9 @@ meaning change must bump schema_version.
 import json
 import unittest
 
-from greenwash.classify import ClassifiedPath, Kind
-from greenwash.output import Report, render_json
-from greenwash.verdict import Finding, Verdict
+from astroturf.classify import ClassifiedPath, Kind
+from astroturf.output import Report, render_json
+from astroturf.verdict import Finding, Verdict
 
 TOP_LEVEL_KEYS = {
     "schema_version", "headline_verdict", "blocking", "exit_code",

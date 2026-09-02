@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Measurement harness for BUILD_PLAN.md section 4 — the two human-read numbers.
 
-Runs `greenwash --commit <sha> --json` across the newest N commits in a real
+Runs `astroturf --commit <sha> --json` across the newest N commits in a real
 repository that touch BOTH src/main and src/test in the same commit, and tallies:
 
   * the INCONCLUSIVE_COMPILE rate (compile-wall measurement, section 9) — this
@@ -16,19 +16,19 @@ repository, runs this, and reads the flagged commits.
 Results are cached per-sha in --out and the run is resumable: kill it at any
 point and rerun with the same --out to continue.
 
-stdlib only; nothing here is imported by greenwash/.
+stdlib only; nothing here is imported by astroturf/.
 
 Examples
 --------
     # what would be measured, without running anything
-    python3 tools/measure.py ~/Documents/greenwash-corpus/commons-lang \
+    python3 tools/measure.py ~/Documents/astroturf-corpus/commons-lang \
         --n 25 --list-only
 
     # smoke run, then read the histogram
-    python3 tools/measure.py ~/Documents/greenwash-corpus/commons-lang --n 25
+    python3 tools/measure.py ~/Documents/astroturf-corpus/commons-lang --n 25
 
     # full run in the background, resumable
-    nohup python3 tools/measure.py ~/Documents/greenwash-corpus/commons-lang \
+    nohup python3 tools/measure.py ~/Documents/astroturf-corpus/commons-lang \
         --n 200 --out commons-lang.json > commons-lang.log 2>&1 &
 """
 
@@ -125,7 +125,7 @@ def run_one(gw: str, repo: Path, sha: str, timeout: int) -> dict:
     try:
         payload = json.loads(proc.stdout)
     except json.JSONDecodeError:
-        # NFR-4 fail-open path, or greenwash crashed before printing JSON.
+        # NFR-4 fail-open path, or astroturf crashed before printing JSON.
         rec.update(verdict="ERROR", stderr_tail=stderr_tail)
         return rec
 
@@ -140,16 +140,16 @@ def run_one(gw: str, repo: Path, sha: str, timeout: int) -> dict:
     return rec
 
 
-def _find_greenwash(repo: Path, override: str | None) -> str:
+def _find_astroturf(repo: Path, override: str | None) -> str:
     if override:
         return override
-    sibling = repo.parent / ".venv" / "bin" / "greenwash"
+    sibling = repo.parent / ".venv" / "bin" / "astroturf"
     if sibling.exists():
         return str(sibling)
-    found = shutil.which("greenwash")
+    found = shutil.which("astroturf")
     if found:
         return found
-    sys.exit("greenwash not found on PATH or in <repo>/../.venv; pass --greenwash PATH")
+    sys.exit("astroturf not found on PATH or in <repo>/../.venv; pass --astroturf PATH")
 
 
 def load_cache(path: Path) -> dict:
@@ -206,9 +206,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--n", type=int, default=200, help="number of in-scope commits to measure (default 200)")
     ap.add_argument("--since", default=None, help="git --since filter, e.g. '3 years ago' (keeps old commits buildable)")
     ap.add_argument("--out", type=Path, default=Path("measure-results.json"), help="per-sha result cache (resumable)")
-    ap.add_argument("--greenwash", default=None, help="path to the greenwash CLI (default: <repo>/../.venv/bin/greenwash, then PATH)")
+    ap.add_argument("--astroturf", default=None, help="path to the astroturf CLI (default: <repo>/../.venv/bin/astroturf, then PATH)")
     ap.add_argument("--commit-timeout", type=int, default=3600, help="hard wall-clock cap per commit in seconds (default 3600)")
-    ap.add_argument("--jobs", type=int, default=1, help="commits to measure concurrently, each greenwash run isolated in its own worktree (default 1)")
+    ap.add_argument("--jobs", type=int, default=1, help="commits to measure concurrently, each astroturf run isolated in its own worktree (default 1)")
     ap.add_argument("--list-only", action="store_true", help="print the selected commits and exit")
     args = ap.parse_args(argv)
 
@@ -226,7 +226,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"\n{len(shas)} commits", file=sys.stderr)
         return 0
 
-    gw = _find_greenwash(repo, args.greenwash)
+    gw = _find_astroturf(repo, args.astroturf)
     cache = load_cache(args.out)
     cache["repo"] = str(repo)
     cache.setdefault("results", {})
@@ -234,11 +234,11 @@ def main(argv: list[str] | None = None) -> int:
     pending = [s for s in shas if s not in cache["results"]]
     done = len(shas) - len(pending)
     jobs = max(1, args.jobs)
-    print(f"greenwash: {gw}")
+    print(f"astroturf: {gw}")
     print(f"{len(shas)} commits selected  |  {done} cached  |  {len(pending)} to run  |  jobs={jobs}")
     if jobs > 1:
         print(f"note: {jobs} builds run at once; keep jobs x surefire-forkCount near your core "
-              f"count in .greenwash.toml so the machine is not oversubscribed")
+              f"count in .astroturf.toml so the machine is not oversubscribed")
 
     lock = threading.Lock()
     durations: list[float] = []

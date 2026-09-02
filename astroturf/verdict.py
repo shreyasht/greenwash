@@ -1,6 +1,6 @@
 """Findings list -> headline verdict (REQUIREMENTS_1.md §4.3, §5).
 
-A change can weaken a gate *and* prop up a test. greenwash emits a list of findings,
+A change can weaken a gate *and* prop up a test. astroturf emits a list of findings,
 each categorised, plus a single headline verdict derived by precedence for exit-code
 purposes. All findings appear in output regardless of the headline.
 """
@@ -24,7 +24,7 @@ class Verdict(str, Enum):
 
 # §5 verdict taxonomy. Blocking only where the finding is unambiguous and demonstrable
 # (§5 blocking rule); everything else informs. Defaults; some are configurable via
-# .greenwash.toml (DR-6 / FR-30).
+# .astroturf.toml (DR-6 / FR-30).
 EXIT_CODES: dict[Verdict, int] = {
     Verdict.NO_TEST_CHANGES: 0,
     Verdict.HONEST_FIX: 0,
@@ -69,7 +69,7 @@ def headline(findings: list[Finding]) -> Verdict:
 
 def exit_code(verdict: Verdict, overrides: dict[str, int] | None = None) -> int:
     """§6.7: exit codes are permanently stable. Per-verdict overrides come from
-    .greenwash.toml (FR-30); CONFIG_WEAKENED and TESTS_REMOVED_OR_SKIPPED are the
+    .astroturf.toml (FR-30); CONFIG_WEAKENED and TESTS_REMOVED_OR_SKIPPED are the
     configurable ones in practice."""
     if overrides and verdict.value in overrides:
         return overrides[verdict.value]

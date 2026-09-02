@@ -14,11 +14,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from greenwash import classify, flake, replay, reports, revisions, strictness
-from greenwash.classify import Kind
-from greenwash.config import Config
-from greenwash.output import Report
-from greenwash.verdict import Finding, Verdict, resolve
+from astroturf import classify, flake, replay, reports, revisions, strictness
+from astroturf.classify import Kind
+from astroturf.config import Config
+from astroturf.output import Report
+from astroturf.verdict import Finding, Verdict, resolve
 
 
 @dataclass

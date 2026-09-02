@@ -1,26 +1,26 @@
 #!/usr/bin/env bash
-# greenwash pre-commit hook (FR-35). Verifies the working tree before the commit lands.
+# astroturf pre-commit hook (FR-35). Verifies the working tree before the commit lands.
 #
 # Install (from the repo you want to guard):
-#   pip install "git+https://github.com/shreyasht/greenwash@main"
+#   pip install "git+https://github.com/shreyasht/astroturf@main"
 #   ln -s ../../hooks/pre-commit .git/hooks/pre-commit   # or copy it
 #
-# greenwash working-tree mode captures staged + unstaged tracked changes. It blocks the
+# astroturf working-tree mode captures staged + unstaged tracked changes. It blocks the
 # commit only on FIX_IS_IN_THE_TESTS or CONFIG_WEAKENED (exit 1); every other verdict is
-# informational. Any internal greenwash error exits 0 (NFR-4), so this hook never wedges
+# informational. Any internal astroturf error exits 0 (NFR-4), so this hook never wedges
 # a commit on its own.
 
-if ! command -v greenwash >/dev/null 2>&1; then
-  echo "greenwash not installed; skipping pre-commit verification" >&2
+if ! command -v astroturf >/dev/null 2>&1; then
+  echo "astroturf not installed; skipping pre-commit verification" >&2
   exit 0
 fi
 
-greenwash
+astroturf
 status=$?
 
 if [ "$status" -ne 0 ]; then
   echo >&2
-  echo "greenwash blocked this commit. Re-run 'greenwash' for the full report, or" >&2
+  echo "astroturf blocked this commit. Re-run 'astroturf' for the full report, or" >&2
   echo "'git commit --no-verify' to override." >&2
 fi
 

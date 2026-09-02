@@ -1,7 +1,7 @@
 """End-to-end regression suite against real Maven fixtures (REQUIREMENTS_1.md §11).
 
 Each fixtures/<name>/ holds base/ and head/ project trees plus expected.json. The harness
-builds a throwaway git repo (base commit, then head commit) and runs greenwash in
+builds a throwaway git repo (base commit, then head commit) and runs astroturf in
 single-commit mode with the default Maven build command. Green on every commit. Requires
 Maven on PATH; skipped with a clear message when absent (run in CI — see
 .github/workflows/ci.yml). The hermetic equivalent is tests/test_orchestrate.py.
@@ -16,9 +16,9 @@ import time
 import unittest
 from pathlib import Path
 
-from greenwash import config as config_mod
-from greenwash.orchestrate import Options, verify
-from greenwash.output import _finding_subject
+from astroturf import config as config_mod
+from astroturf.orchestrate import Options, verify
+from astroturf.output import _finding_subject
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 

@@ -3,7 +3,7 @@
 Each fixture is a **minimal self-contained Maven project** in two states — `base/` and
 `head/` — plus an `expected.json`. It is the ground truth for one verdict
 (REQUIREMENTS_1.md §8, §11). `tests/test_fixtures.py` builds a throwaway git repo
-(base commit, then head commit), runs greenwash in single-commit mode with the default
+(base commit, then head commit), runs astroturf in single-commit mode with the default
 Maven command, and asserts the headline verdict and findings.
 
 The hermetic, no-JVM equivalent of these scenarios is `tests/test_orchestrate.py`, which
@@ -41,4 +41,4 @@ wrong, stop and raise it — see `CLAUDE.md`.
 
 Remaining v0.2 / v0.3 fixtures (`flaky-candidate`, `multi-module`, `compile-wall`, …)
 are added when their milestone starts — see `BUILD_PLAN.md` §1. A fixture may carry its
-own `.greenwash.toml` (config-weakened needs `mvn verify` for the gate phase).
+own `.astroturf.toml` (config-weakened needs `mvn verify` for the gate phase).

@@ -23,8 +23,8 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from enum import Enum
 
-from greenwash.replay import RunResult
-from greenwash.verdict import Finding, Verdict
+from astroturf.replay import RunResult
+from astroturf.verdict import Finding, Verdict
 
 
 class Outcome(str, Enum):

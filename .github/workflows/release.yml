@@ -1,0 +1,67 @@
+name: release
+
+# Tag a release commit `vX.Y.Z` (matching astroturf/__init__.py __version__) and push
+# the tag. This builds the wheel, sdist and the offline zipapp, publishes the wheel and
+# sdist to PyPI via Trusted Publishing (OIDC — no API token stored anywhere), and
+# attaches all three to a GitHub Release.
+#
+# One-time PyPI setup: see RELEASING.md.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: build wheel + sdist
+        run: |
+          python -m pip install --upgrade build
+          python -m build --outdir dist/
+      - name: build offline zipapp
+        run: sh tools/build-zipapp.sh dist/astroturf.pyz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: keep only the Python distributions
+        run: rm -f dist/astroturf.pyz
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "${{ github.ref_name }}" dist/*
+          --repo "${{ github.repository }}"
+          --title "${{ github.ref_name }}"
+          --generate-notes

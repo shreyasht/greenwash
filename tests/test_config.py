@@ -6,12 +6,12 @@ import textwrap
 import unittest
 from pathlib import Path
 
-from greenwash import config as config_mod
+from astroturf import config as config_mod
 
 
 class ConfigTest(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="greenwash-config-")
+        self.tmp = tempfile.mkdtemp(prefix="astroturf-config-")
 
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)

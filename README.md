@@ -1,8 +1,8 @@
-# greenwash
+# astroturf
 
 **Did your coding agent fix the bug, or fix the test that caught it?**
 
-greenwash re-runs your test suite with the agent's test edits withheld. If a test only
+astroturf re-runs your test suite with the agent's test edits withheld. If a test only
 passes when its own edits are applied, the fix is in the assertion, not the code.
 
 Java / Maven / Gradle. Single Python file, stdlib only, nothing leaves your machine.
@@ -42,7 +42,7 @@ hardcoded expected values and edited test files — from both Codex and Claude C
 ## What it reports
 
 ```
-$ greenwash --head agent-cheats --with-base
+$ astroturf --head agent-cheats --with-base
 
 range: agent-cheats~1..agent-cheats  (5513d92b..e08be81a)
   [after]        exit=0 reports=1 pass=2 fail=0
@@ -88,64 +88,69 @@ rather than hunk surgery.
 Every run happens in an isolated `git worktree`. Your working tree, index and stash are
 never touched.
 
-**Every finding is reproducible by hand.** greenwash tells you which files it reverted and
+**Every finding is reproducible by hand.** astroturf tells you which files it reverted and
 which command it ran; you can rerun both yourself and get the same answer. If it ever
 tells you something you can't verify in two commands, that's a bug.
 
 ## Install
 
+Zero runtime dependencies — Python 3.11+, git, and whatever your project already builds
+with. Nothing to add to your `pom.xml` or `build.gradle`.
+
 ```bash
-curl -O https://raw.githubusercontent.com/<you>/greenwash/main/greenwash.py
-chmod +x greenwash.py
+pipx install astroturf        # or: uv tool install astroturf
 ```
 
-That's it. Python 3.8+, git 2.5+, and whatever your project already builds with. No pip
-install, no plugin in your `pom.xml`, no network access required at runtime.
+`uvx astroturf --version` runs it without installing.
+
+**Air-gapped / proxied network with no package index?** Grab the single-file archive from
+the [latest release](https://github.com/shreyasht/astroturf/releases/latest) — it is the
+whole tool, stdlib only:
+
+```bash
+curl -LO https://github.com/shreyasht/astroturf/releases/latest/download/astroturf.pyz
+python3 astroturf.pyz --version
+```
 
 ## Usage
 
 ```bash
 # audit uncommitted work against HEAD  (pre-commit)
-python3 greenwash.py
+astroturf
 
-# audit one commit
-python3 greenwash.py --head <sha>
+# audit a single commit
+astroturf --commit <sha>
 
 # audit a branch against main
-python3 greenwash.py --base main --head my-feature
-
-# stronger verdict: also run the suite at base, to prove the test was already failing
-python3 greenwash.py --head <sha> --with-base
+astroturf --range main..my-feature
 
 # large repo: scope the build yourself
-python3 greenwash.py --head <sha> \
-  --build-cmd "mvn -o -B -pl billing-core -am -Dmaven.test.failure.ignore=true test"
+astroturf --commit <sha> \
+  --build-command "mvn -B -pl billing-core -am -Dmaven.test.failure.ignore=true test"
 
-# machine readable
-python3 greenwash.py --head <sha> --json greenwash.json
+# machine-readable report on stdout
+astroturf --commit <sha> --json
 ```
 
-The default build command is
-`mvn -B -q -Dmaven.test.failure.ignore=true test`. That failure-ignore flag matters —
-without it Maven halts at the first failing module and produces nothing to compare.
+The default build command is `mvn -B -Dmaven.test.failure.ignore=true test`, or
+`./gradlew test --continue --console=plain` when a Gradle wrapper is present. The
+failure-ignore flag matters — without it the build halts at the first failing module and
+produces nothing to compare. Override it with `--build-command` or a `.astroturf.toml`
+(see [Verdicts](#verdicts) and `docs/`).
 
-For Gradle: `--build-cmd "./gradlew test --continue"`.
-
-**Exit codes.** `0` for everything informational, `1` only for `FIX_IS_IN_THE_TESTS`. A
-tool that blocks builds on ambiguous findings gets disabled in a week, so ambiguity never
-blocks.
+**Exit codes.** `0` for everything informational, `1` only for `FIX_IS_IN_THE_TESTS` and
+`CONFIG_WEAKENED`. A tool that blocks builds on ambiguous findings gets disabled in a
+week, so ambiguity never blocks.
 
 ### In CI
 
-No packaged action yet. Wire it manually:
+A reusable GitHub Actions workflow lives in [`hooks/github-actions/`](hooks/github-actions);
+a `pre-commit` hook and a Claude Code `Stop` hook are in [`hooks/`](hooks). Minimal
+manual wiring:
 
 ```yaml
-- name: greenwash
-  run: |
-    python3 greenwash.py \
-      --base ${{ github.event.pull_request.base.sha }} \
-      --head ${{ github.sha }} \
-      --json greenwash.json
+- run: pipx install astroturf
+- run: astroturf --range ${{ github.event.pull_request.base.sha }}..${{ github.sha }} --json
 ```
 
 ## Verdicts
@@ -161,10 +166,10 @@ No packaged action yet. Wire it manually:
 | `CONFIG_WEAKENED` | A gate that failed under base config passes now | 1 | planned |
 | `INCONCLUSIVE_FLAKY` | Findings failed confirmation re-runs | 0 | planned |
 
-## What greenwash is not
+## What astroturf is not
 
 - **Not a code reviewer.** No opinion on style, design or correctness.
-- **Not a coverage tool.** Coverage delta is a proxy; greenwash compares outcomes.
+- **Not a coverage tool.** Coverage delta is a proxy; astroturf compares outcomes.
 - **Not an AI reviewer.** There is no model in the verification path, ever. Same inputs,
   same verdict, always.
 - **Not a test generator.** It never writes or repairs tests.
@@ -190,7 +195,7 @@ No packaged action yet. Wire it manually:
 ## Roadmap
 
 **v0.2** — gate observable and `CONFIG_WEAKENED`; flake confirmation; module-aware test
-identity and per-module reporting; `.greenwash.yml`; versioned JSON; packaged CI action.
+identity and per-module reporting; `.astroturf.yml`; versioned JSON; packaged CI action.
 
 **v0.3** — Claude Code `Stop` hook, so the agent is handed its own verdict and retries
 before reporting success, with no human in the loop. Static pre-filter to skip the replay

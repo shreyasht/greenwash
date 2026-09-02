@@ -1,4 +1,4 @@
-# greenwash — High-Level Requirements
+# astroturf — High-Level Requirements
 
 **Status:** draft v0.3
 **Owner:** Shreyash
@@ -30,7 +30,7 @@ No tool currently answers the question directly. Adjacent categories miss it:
 | AI code review | git-lrc, LLM PR reviewers | Opinion from a model, not reproducible evidence |
 | Coverage / mutation testing | JaCoCo, PIT | Measures the suite, not the delta's honesty |
 
-## 2. What greenwash is
+## 2. What astroturf is
 
 A deterministic verifier that answers one question about a change:
 
@@ -43,13 +43,13 @@ observables across the runs — per-test outcomes and gate outcomes.
 A check that passes with its own edits applied and fails without them is not evidence
 of a fix. It is evidence of a moved goalpost.
 
-## 3. What greenwash is not
+## 3. What astroturf is not
 
 Explicit non-goals. Each is a plausible adjacent feature that would dilute the product,
 and each is out of scope permanently unless revisited by decision record.
 
 - **Not a code reviewer.** No opinion on style, design, or correctness.
-- **Not a coverage tool.** Coverage delta is a weak proxy; greenwash uses outcomes.
+- **Not a coverage tool.** Coverage delta is a weak proxy; astroturf uses outcomes.
 - **Not an agent.** No LLM in the verification path (see NFR-1).
 - **Not a policy engine.** It reports; humans and CI decide what to do about it.
 - **Not a test generator.** It never writes or repairs tests.
@@ -90,7 +90,7 @@ all — lowering a coverage threshold leaves every test passing in both runs whi
 | Per-test outcome | Localized reward hacking: assertion weakened, expectation flipped, test deleted | `(classname, name) → pass\|fail\|error\|skipped` |
 | Gate outcome | Systemic bypass: coverage threshold lowered, lint rule disabled, CI step removed, enforcer relaxed | `(build exit code, failing goal identifiers)` |
 
-Gate detection is a *consequence of the replay*, not a separate analysis. greenwash does
+Gate detection is a *consequence of the replay*, not a separate analysis. astroturf does
 not read `pom.xml` to find a threshold number. It reverts the config, observes that a goal
 which now passes previously failed, and reports it. This works for any gate — JaCoCo,
 Checkstyle, SpotBugs, maven-enforcer, or an internal plugin nobody has heard of — with
@@ -204,7 +204,7 @@ highest-precedence finding across all of them — one offending module fails the
 
 ### 6.6 Interfaces
 
-- **FR-30** Config file at repo root (`.greenwash.yml`) for build command, report globs,
+- **FR-30** Config file at repo root (`.astroturf.yml`) for build command, report globs,
   classification overrides, confirmation count, module scoping, and per-verdict exit
   behaviour.
 - **FR-31** Human-readable stdout naming specific tests and goals, not counts, grouped by

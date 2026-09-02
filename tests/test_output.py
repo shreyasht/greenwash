@@ -3,9 +3,9 @@
 import json
 import unittest
 
-from greenwash.classify import ClassifiedPath, Kind
-from greenwash.output import Report, render_human, render_json
-from greenwash.verdict import Finding, Verdict
+from astroturf.classify import ClassifiedPath, Kind
+from astroturf.output import Report, render_human, render_json
+from astroturf.verdict import Finding, Verdict
 
 
 def _report(**kw):
@@ -71,7 +71,7 @@ class HumanTest(unittest.TestCase):
     def test_shows_disposition_and_classification(self):
         out = render_human(_report())
         self.assertIn("build fails: exit 1", out)
-        self.assertIn("dispute in .greenwash.toml", out)
+        self.assertIn("dispute in .astroturf.toml", out)
         self.assertIn("under test source root", out)
 
     def test_honest_fix_wording(self):
