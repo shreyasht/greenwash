@@ -37,6 +37,11 @@ classifiers = [
 ]
 dependencies = []  # stdlib only (NFR-3)
 
+# Dev-only. Never shipped in the wheel, never imported by astroturf/ (NFR-3 is
+# about the runtime, not the test tooling). `pip install -e ".[dev]"`.
+[project.optional-dependencies]
+dev = ["coverage[toml]>=7"]
+
 [project.scripts]
 astroturf = "astroturf.cli:_console"
 astroturf-stop-hook = "astroturf.stophook:_console"
@@ -52,3 +57,18 @@ packages = ["astroturf"]
 
 [tool.setuptools.dynamic]
 version = { attr = "astroturf.__version__" }
+
+[tool.coverage.run]
+branch = true
+source = ["astroturf"]
+omit = ["astroturf/__main__.py"]  # `python -m` shim, never entered under test
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+exclude_also = [
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+]

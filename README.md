@@ -1,5 +1,8 @@
 # astroturf
 
+[![ci](https://github.com/shreyasht/astroturf/actions/workflows/ci.yml/badge.svg)](https://github.com/shreyasht/astroturf/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/shreyasht/astroturf/branch/main/graph/badge.svg)](https://codecov.io/gh/shreyasht/astroturf)
+
 **Did your coding agent fix the bug, or fix the test that caught it?**
 
 astroturf re-runs your test suite with the agent's test edits withheld. If a test only
