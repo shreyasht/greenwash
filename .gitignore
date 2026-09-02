@@ -1,5 +1,7 @@
 __pycache__/
 *.pyc
+*.egg-info/
+.venv/
 .greenwash-worktrees/
 target/
 .DS_Store
