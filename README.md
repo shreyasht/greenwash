@@ -2,6 +2,8 @@
 
 [![ci](https://github.com/shreyasht/astroturf/actions/workflows/ci.yml/badge.svg)](https://github.com/shreyasht/astroturf/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/shreyasht/astroturf/branch/main/graph/badge.svg)](https://codecov.io/gh/shreyasht/astroturf)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/astroturf.svg)](https://pypi.org/project/astroturf/)
 
 **Did your coding agent fix the bug, or fix the test that caught it?**
 
