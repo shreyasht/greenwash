@@ -11,7 +11,7 @@ passes when its own edits are applied, the fix is in the assertion, not the code
 Java / Maven / Gradle. Python stdlib only, zero runtime dependencies, nothing leaves your
 machine.
 
-> **Status: 0.3, pre-release.** The split-and-replay core, the gate observable
+> **Status: 0.3, early.** The split-and-replay core, the gate observable
 > (`CONFIG_WEAKENED`), flake confirmation, module-aware identity and run C
 > (`TESTS_UPDATED_FOR_BEHAVIOR_CHANGE`) are all shipped and fixture-covered. The
 > false-positive and compile-wall rates (`docs/`, NFR-6 / §9) are still being measured
