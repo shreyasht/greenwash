@@ -132,6 +132,16 @@ class FailingGoalsTest(unittest.TestCase):
                "org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test)\n")
         self.assertEqual(_parse_failing_goals(out), [])
 
+    def test_compile_failure_is_not_a_gate(self):
+        # a reverted test that won't compile against new source is the §9 compile wall
+        # (INCONCLUSIVE_COMPILE), never CONFIG_WEAKENED — Maven and Gradle
+        out = (
+            "Failed to execute goal "
+            "org.apache.maven.plugins:maven-compiler-plugin:3.11.0:testCompile (default-testCompile)\n"
+            "> Task :compileTestJava FAILED\n"
+        )
+        self.assertEqual(_parse_failing_goals(out), [])
+
 
 class DiscoverReportsTest(unittest.TestCase):
     def setUp(self):

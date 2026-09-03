@@ -46,11 +46,14 @@ TIMEOUT_EXIT = 124
 _GOAL_RE = re.compile(r"Failed to execute goal ([\w.\-]+:[\w.\-]+:[\w.\-]+:[\w.\-]+)")
 # Gradle: "Execution failed for task ':x'." and "> Task :x FAILED"
 _GRADLE_TASK_RE = re.compile(r"Execution failed for task '(:[\w:.\-]+)'|> Task (:[\w:.\-]+) FAILED")
-# Test-execution goals/tasks are the per-test observable's domain, not gate weakening —
-# excluding them keeps CONFIG_WEAKENED off the false-positive budget (NFR-6).
+# Test-execution goals/tasks are the per-test observable's domain, and compile goals
+# are the §9 compile wall's (a reverted test that won't compile against new source is
+# INCONCLUSIVE_COMPILE, never CONFIG_WEAKENED). Excluding both keeps CONFIG_WEAKENED
+# off the false-positive budget (NFR-6).
 _NON_GATE_RE = re.compile(
-    r"maven-(surefire|failsafe)-plugin|"
-    r"(?:^|:)(test|integrationTest|intTest|functionalTest)$|Test$"
+    r"maven-(surefire|failsafe|compiler)-plugin|"
+    r"(?:^|:)(test|integrationTest|intTest|functionalTest"
+    r"|compile|testCompile|compileJava|compileTestJava)$|Test$"
 )
 _COMPILE_FAIL_RE = re.compile(
     r"COMPILATION ERROR|BUILD FAILED.*compileTest|compileTest\w*\s+FAILED|"
