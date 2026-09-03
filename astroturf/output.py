@@ -31,6 +31,10 @@ class Report:
 _HEADLINE_SUMMARY: dict[Verdict, str] = {
     Verdict.NO_TEST_CHANGES: "no test or config files changed; nothing to verify",
     Verdict.HONEST_FIX: "the source change satisfies the checks without the test or config edits",
+    Verdict.TESTS_UPDATED_FOR_BEHAVIOR_CHANGE: (
+        "the assertions changed alongside a real behaviour change in the source — they "
+        "passed at base; verify the behaviour change is intended"
+    ),
     Verdict.TESTS_REMOVED_OR_SKIPPED: "the source fix holds, but test coverage shrank in the same change",
     Verdict.CONFIG_WEAKENED: "a gate that failed under the base config passes under the new config",
     Verdict.FIX_IS_IN_THE_TESTS: "the source change alone does not make the named tests pass",
@@ -54,7 +58,12 @@ def _finding_subject(f: Finding) -> str:
 def _finding_explanation(f: Finding) -> str:
     d = f.detail
     if f.verdict is Verdict.FIX_IS_IN_THE_TESTS:
-        return "passes with the test/config edits applied, fails without them (source-only run)"
+        base = d.get("base")
+        tail = f"; was already {base} at base" if base in ("fail", "error") else ""
+        return ("passes with the test/config edits applied, fails without them "
+                f"(source-only run){tail}")
+    if f.verdict is Verdict.TESTS_UPDATED_FOR_BEHAVIOR_CHANGE:
+        return "passed at base; fails when the test edits are reverted against the new source"
     if f.verdict is Verdict.CONFIG_WEAKENED:
         return "fails under the base config, passes under the new config"
     if f.verdict is Verdict.TESTS_REMOVED_OR_SKIPPED:

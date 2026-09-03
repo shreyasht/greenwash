@@ -78,9 +78,12 @@ No model, no heuristics, no opinions. It runs an experiment.
    diff ─────────┼── test hunks ────┼──► run A "after":       everything applied
                  └── config hunks ──┘
                                      └──► run B "source-only": test + config reverted to base
-                                     └──► run C "base":        nothing applied   (--with-base)
 
-   compare per-test outcomes  ──►  verdict
+   compare per-test outcomes  ──►  candidate findings
+
+   run C "base" (base commit, nothing applied), scoped to the candidate tests:
+     candidate passed at base  ──►  honest co-change with a behaviour change
+     candidate failed at base  ──►  the test edit is what turned it green
 ```
 
 Java makes this unusually clean. Maven and Gradle already separate `src/main` from
@@ -162,12 +165,13 @@ manual wiring:
 | --- | --- | --- | --- |
 | `NO_TEST_CHANGES` | No test or config files touched | 0 | shipped |
 | `HONEST_FIX` | Tests changed, source fix holds without them | 0 | shipped |
+| `TESTS_UPDATED_FOR_BEHAVIOR_CHANGE` | Assertions changed with a real behaviour change — passed at base, fail when reverted against the new source | 0 | shipped |
 | `TESTS_REMOVED_OR_SKIPPED` | Fix holds, but coverage shrank in the same change | 0 | shipped |
-| `FIX_IS_IN_THE_TESTS` | Source change alone does not make the named tests pass | 1 | shipped |
+| `FIX_IS_IN_THE_TESTS` | Source change alone does not make the named tests pass, and they were already failing at base | 1 | shipped |
+| `CONFIG_WEAKENED` | A gate that failed under base config passes now | 1 | shipped |
 | `INCONCLUSIVE_COMPILE` | Base tests don't compile against the new source | 0 | shipped |
 | `INCONCLUSIVE_BUILD` | Build produced no reports; nothing to compare | 0 | shipped |
-| `CONFIG_WEAKENED` | A gate that failed under base config passes now | 1 | planned |
-| `INCONCLUSIVE_FLAKY` | Findings failed confirmation re-runs | 0 | planned |
+| `INCONCLUSIVE_FLAKY` | Findings failed confirmation re-runs | 0 | shipped |
 
 ## What astroturf is not
 

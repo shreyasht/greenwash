@@ -336,9 +336,22 @@ _Append one line per completed step. Keep newest last._
     1 TESTS_REMOVED_OR_SKIPPED (a same-class test-method rename — non-blocking),
     0 INCONCLUSIVE_COMPILE, 0 blocking. commons-lang is near-zero signature churn, so
     gson + assertj-core were added to actually stress the compile wall.
-  - Distribution (DR-7): dual-track. PyPI name `astroturf` (`astroturf` taken), import
-    and console scripts unchanged. `__version__` is the single source of truth, read
-    dynamically by `pyproject.toml`. `--version` flag. `tools/build-zipapp.sh` produces
-    the stdlib-only `astroturf.pyz` offline path (NFR-3). `.github/workflows/release.yml`
+  - Distribution (DR-7): dual-track. Renamed greenwash -> astroturf (`greenwash` on PyPI
+    is an unrelated tool). `__version__` is the single source of truth, read dynamically
+    by `pyproject.toml`. `--version` flag. `tools/build-zipapp.sh` produces the
+    stdlib-only `astroturf.pyz` offline path (NFR-3). `.github/workflows/release.yml`
     builds wheel + sdist + zipapp on a `v*` tag and publishes to PyPI via Trusted
     Publishing (OIDC, no token — NFR-2). Process in `RELEASING.md`.
+- 2026-09-03 — run C + measurement findings:
+  - Measurement harness fixes: drop `--first-parent` (merge-commit repos like JSON-java);
+    `maven-compiler-plugin` / `compile` / `testCompile` goals are the compile wall, not a
+    gate (was a spurious blocking CONFIG_WEAKENED).
+  - **Run C (DR-9):** JSON-java newest-25 came back 20% blocking. Root cause: an
+    `A-pass / B-fail` candidate can be an honest co-change (behaviour changed in source,
+    assertions updated to match — the check passed at base) as easily as a hack (test was
+    already red). orchestrate now re-runs each `FIX_IS_IN_THE_TESTS` candidate at base,
+    scoped via `test_filter` (NFR-7 — a clean run pays nothing), before flake
+    confirmation. Passed-at-base -> new non-blocking verdict
+    `TESTS_UPDATED_FOR_BEHAVIOR_CHANGE`; failing/absent-at-base stays
+    `FIX_IS_IN_THE_TESTS` with `base:` in its detail. `reports.split_by_base`.
+  Suite: 131 tests.

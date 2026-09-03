@@ -152,6 +152,39 @@ def compare(
     return findings
 
 
+def split_by_base(
+    fix_findings: list[Finding], base_outcomes: dict[TestKey, Outcome]
+) -> tuple[list[Finding], list[Finding]]:
+    """Partition FIX_IS_IN_THE_TESTS candidates by their outcome at base (run C, §4.3).
+
+    A candidate that *passed at base* was a valid check for the old contract; the head
+    source changed the behaviour it exercises and the assertions were updated to match.
+    That is a legitimate co-change — reclassify to TESTS_UPDATED_FOR_BEHAVIOR_CHANGE
+    (non-blocking). A candidate that was *already failing at base* (or cannot be run
+    there) is the real thing: the source change did not make it pass, only the test edit
+    did. It stays FIX_IS_IN_THE_TESTS.
+
+    Returns (still_fix, behavior_change).
+    """
+    still_fix: list[Finding] = []
+    behavior_change: list[Finding] = []
+    for f in fix_findings:
+        key = TestKey(f.module, f.detail["classname"], f.detail["name"])
+        at_base = base_outcomes.get(key)
+        if at_base is Outcome.PASS:
+            behavior_change.append(Finding(
+                Verdict.TESTS_UPDATED_FOR_BEHAVIOR_CHANGE, f.module, {
+                    **f.detail,
+                    "base": Outcome.PASS.value,
+                    "reason": "passed at base; the head source changed the behaviour it checks",
+                },
+            ))
+        else:
+            f.detail["base"] = at_base.value if at_base is not None else "absent"
+            still_fix.append(f)
+    return still_fix, behavior_change
+
+
 def _gate_module(goal: str) -> str:
     """Best-effort module for a failing goal. Gradle task path ':sub:task' -> 'sub';
     ':task' or a Maven GAV:goal -> '.'. Maven multi-module attribution needs pom

@@ -151,6 +151,21 @@ def verify(options: Options, config: Config) -> Report:
     fix_candidates = [f for f in per_test if f.verdict is Verdict.FIX_IS_IN_THE_TESTS]
     structural = [f for f in per_test if f.verdict is not Verdict.FIX_IS_IN_THE_TESTS]
 
+    # Run C (§4.3): re-run each FIX_IS_IN_THE_TESTS candidate at base with nothing applied.
+    # A candidate that passed at base was valid for the old contract — the head source
+    # changed the behaviour it checks and the assertions were updated to match; that is a
+    # legitimate co-change (TESTS_UPDATED_FOR_BEHAVIOR_CHANGE), not a propped-up test.
+    # One already failing at base is the real FIX_IS_IN_THE_TESTS. Scoped to the candidate
+    # tests, so a clean run pays nothing (NFR-7).
+    behavior_change: list[Finding] = []
+    if fix_candidates:
+        base_specs = [(f.detail["classname"], f.detail["name"]) for f in fix_candidates]
+        _, c_outcomes = _run_side(
+            repo_root, spec.base_ref, replay.test_filter(command, base_specs),
+            overlay=None, name="C", **common,
+        )
+        fix_candidates, behavior_change = reports.split_by_base(fix_candidates, c_outcomes)
+
     if fix_candidates and k > 0:
         def _confirm_runner(overlay):
             def run(scope):
@@ -173,7 +188,7 @@ def verify(options: Options, config: Config) -> Report:
         surviving, demoted = fix_candidates, []
 
     confirmed_a_fix = bool(surviving)
-    surviving = surviving + structural
+    surviving = surviving + structural + behavior_change
 
     if confirmed_a_fix and mode is flake.ConfirmMode.ISOLATED:
         warnings.append(

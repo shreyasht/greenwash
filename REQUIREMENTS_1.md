@@ -109,10 +109,19 @@ exit-code purposes:
 
 ```
 FIX_IS_IN_THE_TESTS > CONFIG_WEAKENED > TESTS_REMOVED_OR_SKIPPED
-    > INCONCLUSIVE_* > HONEST_FIX > NO_TEST_CHANGES
+    > INCONCLUSIVE_* > TESTS_UPDATED_FOR_BEHAVIOR_CHANGE > HONEST_FIX > NO_TEST_CHANGES
 ```
 
 All findings appear in both human and JSON output regardless of headline.
+
+**Run C (base) disambiguates a propped-up test from an honest co-change.** An
+`A-pass / B-fail` candidate has two causes: the test was *already failing* before the
+change and the test edit is what turned it green (a hack), or the test *passed at base*
+and the head source genuinely changed the behaviour it checks, so the assertions were
+updated to match (honest). The tool re-runs each candidate at base with nothing applied:
+passed-at-base reclassifies to `TESTS_UPDATED_FOR_BEHAVIOR_CHANGE` (non-blocking);
+already-failing (or un-runnable at base) stays `FIX_IS_IN_THE_TESTS`. Run C is scoped to
+the candidate tests, so a clean run costs nothing (NFR-7). See DR-9.
 
 ## 5. Verdict taxonomy
 
@@ -120,6 +129,7 @@ All findings appear in both human and JSON output regardless of headline.
 | --- | --- | --- |
 | `NO_TEST_CHANGES` | No test or config files touched; nothing to verify | 0 |
 | `HONEST_FIX` | Tests/config changed, source fix holds without them | 0 |
+| `TESTS_UPDATED_FOR_BEHAVIOR_CHANGE` | Assertions changed with a real behaviour change — they passed at base, fail when reverted against the new source | 0 |
 | `TESTS_REMOVED_OR_SKIPPED` | Source fix holds, but coverage shrank in the same change | 0 (configurable) |
 | `CONFIG_WEAKENED` | A gate that failed under base config passes under the new config | 1 (configurable) |
 | `FIX_IS_IN_THE_TESTS` | Source change alone does not make the named tests pass | 1 |

@@ -19,7 +19,7 @@ from astroturf import cli
 from astroturf.config import Config
 from astroturf.orchestrate import Options, verify
 from astroturf.output import _finding_subject
-from astroturf.verdict import Verdict
+from astroturf.verdict import Verdict, exit_code
 
 RUNTESTS = '''import json, os, sys
 os.makedirs("target/surefire-reports", exist_ok=True)
@@ -69,6 +69,13 @@ TWO = json.dumps([
 
 BUILD_CMD = ["python3", "runtests.py"]
 OVERRIDES = {"calc.py": "source", "cases.json": "test"}
+
+# Behaviour genuinely changes in the source and the assertions are updated to match.
+# The old assertion PASSED at base, so run C reclassifies away from FIX_IS_IN_THE_TESTS.
+SUM = "def add(a, b):\n    return a + b\n"
+PRODUCT = "def add(a, b):\n    return a * b\n"
+EXPECT_SUM = json.dumps([{"name": "t", "a": 2, "b": 3, "expected": 5}])
+EXPECT_PRODUCT = json.dumps([{"name": "t", "a": 2, "b": 3, "expected": 6}])
 
 
 class OrchestrateTest(unittest.TestCase):
@@ -124,6 +131,15 @@ class OrchestrateTest(unittest.TestCase):
     def test_no_test_changes_skips_replay(self):
         r = self._verify(self._b(BUG, ONE), self._b(FIX, ONE))
         self.assertEqual(r.headline, Verdict.NO_TEST_CHANGES)
+
+    def test_tests_updated_for_behavior_change(self):
+        # source: a+b -> a*b (real behaviour change); assertion: expected 5 -> 6.
+        # run B (revert cases): a*b vs expected 5 -> fail, a FIX_IS_IN_THE_TESTS candidate.
+        # run C (base): a+b vs expected 5 -> pass, so it is reclassified, non-blocking.
+        r = self._verify(self._b(SUM, EXPECT_SUM), self._b(PRODUCT, EXPECT_PRODUCT))
+        self.assertEqual(r.headline, Verdict.TESTS_UPDATED_FOR_BEHAVIOR_CHANGE)
+        self.assertEqual(exit_code(r.headline), 0)
+        self.assertIn("calc.CalcTest.t", [_finding_subject(f) for f in r.findings])
 
     def test_fix_in_tests_survives_flake_confirmation(self):
         # deterministic fake build -> the FIX_IS_IN_THE_TESTS candidate is re-confirmed

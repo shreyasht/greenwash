@@ -75,4 +75,41 @@ fire; astroturf audits whether the code passing through the gate earned it. Run 
 
 ---
 
-_Add new records below as DR-9, DR-10, …_
+## DR-9 — Run C (base) disambiguates FIX_IS_IN_THE_TESTS; new non-blocking verdict
+
+*Accepted 2026-09-03.*
+
+The measurement harness on `stleary/JSON-java` returned a 20% blocking rate (5/25). Two
+of those were a compiler goal mis-read as a gate (fixed separately). The other three were
+all the same shape: a real behaviour change in `src/main` (e.g. `XML.toString` now throws
+on illegal element names, CWE-91) with the assertions updated to match
+(`assertEquals([1])` → `assertEquals([1,""])`). Reverting the tests makes them fail
+against the new source, so `A-pass / B-fail` fires — mechanically correct, but a reviewer
+calls every one an honest fix. On any repo where behaviour-changing commits routinely
+touch assertions, this alone blows the NFR-6 2% budget.
+
+The A/B experiment cannot tell "assertion updated for a real behaviour change" from
+"assertion hacked to hide a non-fix". The distinguishing signal is the test's outcome
+**at base**:
+
+- **passed at base** → the check was valid for the old contract; the head source changed
+  the behaviour it exercises. Legitimate co-change.
+- **failing at base** → the test was already red; the source change did not fix it, only
+  the test edit did. The real thing.
+
+Decision: wire **run C** — re-run each `FIX_IS_IN_THE_TESTS` candidate at `base_ref` with
+nothing applied, scoped to the candidate tests via the same `test_filter` path flake
+confirmation uses (so a clean run pays nothing, NFR-7). Passed-at-base reclassifies to a
+new verdict **`TESTS_UPDATED_FOR_BEHAVIOR_CHANGE`** (exit 0, non-blocking, precedence just
+above `HONEST_FIX`); already-failing or un-runnable-at-base stays `FIX_IS_IN_THE_TESTS`,
+now carrying `base: "fail" | "error" | "absent"` in its detail. Run C happens before
+flake confirmation, so the expensive K-round confirmation only runs on genuine
+candidates.
+
+This makes the README's long-described `--with-base` / run C part of the default path
+rather than an opt-in. Additive to JSON schema 1 (a new verdict string; consumers already
+fail open on unrecognised verdicts, DR-5).
+
+---
+
+_Add new records below as DR-10, DR-11, …_
