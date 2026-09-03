@@ -15,7 +15,7 @@ machine.
 
 > **Status: 0.3, early.** The split-and-replay core, the gate observable
 > (`CONFIG_WEAKENED`), flake confirmation, module-aware identity and run C
-> (`TESTS_UPDATED_FOR_BEHAVIOR_CHANGE`) are all shipped and fixture-covered. The
+> (`TESTS_UPDATED_FOR_BEHAVIOR_CHANGE`) are all shipped and test-covered. The
 > false-positive and compile-wall rates (`docs/`, NFR-6 / §9) are still being measured
 > against real repositories. If you are evaluating this for a team, read
 > [Known limitations](#known-limitations) first.
@@ -51,29 +51,27 @@ hardcoded expected values and edited test files — from both Codex and Claude C
 ## What it reports
 
 ```
-$ astroturf --head agent-cheats --with-base
+$ astroturf --range main..agent-cheats
 
-range: agent-cheats~1..agent-cheats  (5513d92b..e08be81a)
-  [after]        exit=0 reports=1 pass=2 fail=0
-  [source-only]  exit=0 reports=1 pass=1 fail=1
-  [base]         exit=0 reports=1 pass=1 fail=1
+astroturf: FIX_IS_IN_THE_TESTS  (build fails: exit 1)
 
-====================================================================
-  FAIL  FIX_IS_IN_THE_TESTS
-  The source change alone does NOT make these tests pass.
-====================================================================
+the source change alone does not make the named tests pass
 
-changed files
-  source   1  M:src/main/java/Calc.java
-  test     1  M:src/test/java/CalcTest.java
+Findings:
 
-tests that only pass because the test/config edits are applied
-  CalcTest.testDivideByZeroGivesFriendlyError
-      with test edits: pass   source only: fail  <- was already failing before the change
+  module .
+    FIX_IS_IN_THE_TESTS  CalcTest.testDivideByZeroGivesFriendlyError
+        passes with the test/config edits applied, fails without them
+        (source-only run); was already fail at base
+
+Classification (dispute in .astroturf.toml):
+  source  src/main/java/Calc.java      under main source root 'src/main/'
+  test    src/test/java/CalcTest.java  under test source root 'src/test/' (FR-2)
 ```
 
-Exit code 1. That last line is the whole product: the test was already failing before this
-change, and the source edit did not fix it.
+Exit code 1. `was already fail at base` is the whole product: the test was failing before
+this change, and the source edit did not fix it. Had it passed at base, the verdict would
+be `TESTS_UPDATED_FOR_BEHAVIOR_CHANGE` instead — an honest co-change, exit 0.
 
 ## How it works
 
@@ -142,7 +140,17 @@ astroturf --commit <sha> \
 
 # machine-readable report on stdout
 astroturf --commit <sha> --json
+
+# skip the replay when static analysis sees no strictness reduction
+astroturf --commit <sha> --prefilter
+
+# flake confirmation: re-runs per side, and how to scope them
+astroturf --commit <sha> --confirm-count 3 --confirm-mode full
 ```
+
+Run C is automatic. When the A-vs-B comparison produces `FIX_IS_IN_THE_TESTS`
+candidates, astroturf re-runs those tests — and only those — at base to separate a
+propped-up test from an honest behaviour co-change. There is no flag for it.
 
 The default build command is `mvn -B -Dmaven.test.failure.ignore=true test`, or
 `./gradlew test --continue --console=plain` when a Gradle wrapper is present. The
@@ -191,45 +199,52 @@ manual wiring:
 
 ## Known limitations
 
-- **Two full suite runs.** Roughly 2.2× the cost of one. Scope with `-pl` on large repos.
+- **Two full suite runs.** Roughly 2.2× the cost of one, plus scoped re-runs for run C and
+  flake confirmation. Narrow with `-pl` on large repos, or `--prefilter`.
 - **The compile wall.** Reverting tests against changed source breaks compilation whenever
   a signature changes, which in a statically typed language is often. Those changes return
-  `INCONCLUSIVE_COMPILE`, which is honest but unhelpful. This is the project's main open
-  problem — see below.
-- **Flaky tests produce false positives.** A test that fails in run B by chance looks
-  exactly like a propped-up test. Confirmation re-runs are designed but not built.
-- **Gate weakening is invisible in v0.1.** Lowering a JaCoCo threshold changes no test
-  outcome, so v0.1 reports `HONEST_FIX`. Being fixed via a second observable.
-- **Untracked files are excluded.** `git stash create` doesn't capture them; you get a
-  warning.
+  `INCONCLUSIVE_COMPILE`. An AST-strictness fallback is drafted but gated on measuring how
+  often this actually fires — see [Help wanted](#help-wanted). This remains the project's
+  main open problem.
+- **Flake confirmation runs candidates in isolation by default.** Test-order dependence and
+  shared-state pollution are indistinguishable from flakiness under isolation, so the run
+  warns when this applies. `--confirm-mode full` trades cost for a correct answer.
+- **Untracked files are excluded.** Working-tree mode uses `git stash create`, which does
+  not capture them; you get a warning naming what was skipped. Worktrees are also fresh
+  checkouts, so untracked local config your suite depends on will not be present.
 - **CI-workflow gate weakening is invisible to the replay.** astroturf runs the build
-  command it's given; it doesn't read `.github/workflows` to check whether the job
+  command it is given; it does not read `.github/workflows` to check whether the job
   carrying a required check can be skipped (`if:`, path filters, `continue-on-error`,
-  renamed checks). That's a static-audit problem — see
+  renamed checks). That is a static-audit problem — see
   [`greenwash`](https://pypi.org/project/greenwash/) — and DR-8 in `docs/decisions.md`.
-- **Single-module test identity.** Tests are keyed `(classname, name)`, so identically
-  named test classes in different modules can collide. Module-aware keys are next.
+- **Maven fixtures require Maven on PATH.** `tests/test_fixtures.py` skips without it;
+  `tests/test_orchestrate.py` is the hermetic equivalent.
 
 ## Roadmap
 
-**v0.2** — gate observable and `CONFIG_WEAKENED`; flake confirmation; module-aware test
-identity and per-module reporting; `.astroturf.yml`; versioned JSON; packaged CI action.
+Shipped in 0.3: split-and-replay core, gate observable (`CONFIG_WEAKENED`), run C and
+`TESTS_UPDATED_FOR_BEHAVIOR_CHANGE`, flake confirmation, module-aware identity, static
+prefilter, `.astroturf.toml`, versioned JSON, and pre-commit / GitHub Actions / Claude
+Code `Stop` hooks in [`hooks/`](hooks).
 
-**v0.3** — Claude Code `Stop` hook, so the agent is handed its own verdict and retries
-before reporting success, with no human in the loop. Static pre-filter to skip the replay
-when nothing was weakened. A fallback for the compile wall.
+**Next**
 
-**v0.4** — Kotlin, then TypeScript (Jest/Vitest JUnit reporters). Language support is a
-plugin boundary, not a fork.
+- Measured false-positive and compile-wall rates against real repositories (NFR-6, §9).
+- An AST-strictness fallback for the compile wall, if the measured rate justifies it.
+- Fixture coverage for the verdicts that currently have only hermetic tests —
+  `TESTS_UPDATED_FOR_BEHAVIOR_CHANGE`, `INCONCLUSIVE_FLAKY`, `INCONCLUSIVE_COMPILE`.
+- Kotlin, then TypeScript (Jest/Vitest JUnit reporters). Language support is a plugin
+  boundary, not a fork.
 
-Full requirements and decision record: [`REQUIREMENTS.md`](REQUIREMENTS.md).
+Full requirements and decision record: [`REQUIREMENTS.md`](REQUIREMENTS.md) and
+[`docs/decisions.md`](docs/decisions.md).
 
 ## Help wanted
 
 The most useful contribution right now is not code. It's a number.
 
-Run v0.1 across ~100 real commits in your repo that touch both `src/main` and `src/test`,
-and report **what fraction come back `INCONCLUSIVE_COMPILE`**. That rate decides whether
+Run astroturf across ~100 real commits in your repo that touch both `src/main` and
+`src/test`, and report **what fraction come back `INCONCLUSIVE_COMPILE`**. That rate decides whether
 the runtime-comparison approach is viable in statically typed languages or whether it
 needs an AST-based fallback. Nobody has measured it. Open an issue with the number, your
 language, and your build tool.
