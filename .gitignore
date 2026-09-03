@@ -12,3 +12,8 @@ target/
 .DS_Store
 
 .claude/settings.local.json
+
+# maintainer-local, not published (see docs/decisions.md)
+/RELEASING.md
+/BUILD_PLAN.md
+/CLAUDE.md

@@ -1,4 +1,4 @@
-"""Change classification (REQUIREMENTS_1.md §6.1, FR-1..FR-6).
+"""Change classification (REQUIREMENTS.md §6.1, FR-1..FR-6).
 
 Classify every changed path as source | test | config | neutral, attributed to its
 owning build module. Test detection comes from build-tool convention (src/test/,

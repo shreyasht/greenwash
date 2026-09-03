@@ -1,4 +1,4 @@
-"""CLI entry (REQUIREMENTS_1.md §6.6, §6.7; NFR-4 fail open).
+"""CLI entry (REQUIREMENTS.md §6.6, §6.7; NFR-4 fail open).
 
 Arg parsing, input-mode selection, and the top-level fail-open wrapper: any internal
 error exits 0 with a diagnostic on stderr (NFR-4). Exit codes are permanently stable

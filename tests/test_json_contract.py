@@ -1,4 +1,4 @@
-"""JSON report stability contract (REQUIREMENTS_1.md §6.7, FR-33).
+"""JSON report stability contract (REQUIREMENTS.md §6.7, FR-33).
 
 Pins the exact shape of schema_version 1. Fields may be ADDED within a version — update
 the expected sets below and keep schema_version at 1. Any rename / retype / removal /

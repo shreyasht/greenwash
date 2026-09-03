@@ -1,4 +1,4 @@
-# Decision records — amendments to REQUIREMENTS_1.md §12
+# Decision records — amendments to REQUIREMENTS.md §12
 
 ## DR-6 — Config file is TOML, not YAML
 
@@ -37,7 +37,8 @@ Decision: ship the same source tree two ways.
 Publishing uses PyPI Trusted Publishing (OIDC) from `release.yml` on a `vX.Y.Z` tag — no
 API token is stored anywhere, consistent with NFR-2. `__version__` in
 `astroturf/__init__.py` is the single source of truth; `pyproject.toml` reads it
-dynamically. Process in `RELEASING.md`.
+dynamically. An `rc` tag routes to TestPyPI, a plain tag to PyPI. The maintainer
+runbook is kept outside the repo.
 
 ---
 

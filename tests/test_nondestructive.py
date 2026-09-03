@@ -1,6 +1,6 @@
-"""NFR-5 property test: a astroturf run leaves the repo's working tree, index, and stash
-list byte-identical. This is the foundation everything else trusts (BUILD_PLAN.md §3
-step 1) and must stay green for the life of the project.
+"""NFR-5 property test: an astroturf run leaves the repo's working tree, index, and stash
+list byte-identical. This is the foundation everything else trusts and must stay green
+for the life of the project.
 """
 
 import shutil

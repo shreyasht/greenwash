@@ -50,7 +50,7 @@ astroturf-stop-hook = "astroturf.stophook:_console"
 Homepage = "https://github.com/shreyasht/astroturf"
 Repository = "https://github.com/shreyasht/astroturf"
 Issues = "https://github.com/shreyasht/astroturf/issues"
-Changelog = "https://github.com/shreyasht/astroturf/blob/main/BUILD_PLAN.md"
+Changelog = "https://github.com/shreyasht/astroturf/releases"
 
 [tool.setuptools]
 packages = ["astroturf"]

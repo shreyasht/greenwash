@@ -8,7 +8,9 @@ name: release
 #   pre-release tag (contains "rc")  -> TestPyPI   e.g. v0.3.0rc1
 #   final tag                        -> PyPI       e.g. v0.3.0
 #
-# One-time publisher + environment setup: see RELEASING.md.
+# One-time setup: configure a PyPI Trusted Publisher for this repo pointing at
+# workflow `release.yml`, environment `pypi` (and TestPyPI / environment `testpypi`
+# for rc tags), plus matching GitHub environments.
 
 on:
   push:

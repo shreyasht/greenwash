@@ -1,4 +1,4 @@
-"""Revision handling and worktree isolation (REQUIREMENTS_1.md §6.2, FR-7..FR-11).
+"""Revision handling and worktree isolation (REQUIREMENTS.md §6.2, FR-7..FR-11).
 
 Three input modes: a commit range, a single commit, the uncommitted working tree (FR-7).
 Never mutate the user's working tree, index, or stash stack — use isolated git worktrees

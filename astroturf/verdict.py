@@ -1,4 +1,4 @@
-"""Findings list -> headline verdict (REQUIREMENTS_1.md §4.3, §5).
+"""Findings list -> headline verdict (REQUIREMENTS.md §4.3, §5).
 
 A change can weaken a gate *and* prop up a test. astroturf emits a list of findings,
 each categorised, plus a single headline verdict derived by precedence for exit-code

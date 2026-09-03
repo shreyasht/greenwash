@@ -1,4 +1,4 @@
-"""Claude Code `Stop` hook (REQUIREMENTS_1.md FR-36, §10 surface 3).
+"""Claude Code `Stop` hook (REQUIREMENTS.md FR-36, §10 surface 3).
 
 Runs astroturf on the working tree when the agent tries to end its turn. On a blocking
 verdict it returns a `block` decision with the verdict text, so the agent is handed the

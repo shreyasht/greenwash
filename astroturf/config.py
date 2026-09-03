@@ -1,4 +1,4 @@
-"""Config file loading (REQUIREMENTS_1.md §6.6 FR-30; format per DR-6).
+"""Config file loading (REQUIREMENTS.md §6.6 FR-30; format per DR-6).
 
 `.astroturf.toml` at repo root, parsed with stdlib `tomllib`. Keys: build command,
 report globs, classification overrides, confirmation count, module scoping, per-verdict

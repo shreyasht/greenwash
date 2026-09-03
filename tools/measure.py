@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measurement harness for BUILD_PLAN.md section 4 — the two human-read numbers.
+"""Measurement harness for the two human-read numbers (REQUIREMENTS.md NFR-6, §9).
 
 Runs `astroturf --commit <sha> --json` across the newest N commits in a real
 repository that touch BOTH src/main and src/test in the same commit, and tallies:

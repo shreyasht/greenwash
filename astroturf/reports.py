@@ -1,4 +1,4 @@
-"""Result comparison (REQUIREMENTS_1.md §6.4, FR-19..FR-25).
+"""Result comparison (REQUIREMENTS.md §6.4, FR-19..FR-25).
 
 Parse JUnit XML from Surefire, Failsafe and Gradle report locations (FR-19). Identify
 tests by (module, classname, name) — same-named classes in different modules are

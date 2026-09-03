@@ -2,7 +2,7 @@
 
 Each fixture is a **minimal self-contained Maven project** in two states — `base/` and
 `head/` — plus an `expected.json`. It is the ground truth for one verdict
-(REQUIREMENTS_1.md §8, §11). `tests/test_fixtures.py` builds a throwaway git repo
+(REQUIREMENTS.md §8, §11). `tests/test_fixtures.py` builds a throwaway git repo
 (base commit, then head commit), runs astroturf in single-commit mode with the default
 Maven command, and asserts the headline verdict and findings.
 
@@ -27,7 +27,7 @@ argument; the fix is `return a + b`.
 
 Never edit a fixture's assertions, its `head/` tree, or `expected.json` to make a
 failing run pass. The fixture is right; the code is wrong. If a fixture genuinely looks
-wrong, stop and raise it — see `CLAUDE.md`.
+wrong, stop and raise it — that edit is the exact reward-hack this tool detects.
 
 ## Status
 
@@ -39,6 +39,5 @@ wrong, stop and raise it — see `CLAUDE.md`.
 | no-test-changes | `NO_TEST_CHANGES` | source-only change (adds `subtract`) |
 | config-weakened | `CONFIG_WEAKENED` | `pom.xml` lowers the JaCoCo coverage minimum 0.80 → 0.00 |
 
-Remaining v0.2 / v0.3 fixtures (`flaky-candidate`, `multi-module`, `compile-wall`, …)
-are added when their milestone starts — see `BUILD_PLAN.md` §1. A fixture may carry its
-own `.astroturf.toml` (config-weakened needs `mvn verify` for the gate phase).
+A fixture may carry its own `.astroturf.toml` (config-weakened needs `mvn verify` for
+the gate phase).

@@ -8,5 +8,5 @@ No LLM, no network in this package (NFR-1, NFR-2). Python stdlib only (NFR-3).
 
 __version__ = "0.3.0"
 
-# Bumped only on a breaking change to the JSON report (see REQUIREMENTS_1.md §6.7).
+# Bumped only on a breaking change to the JSON report (see REQUIREMENTS.md §6.7).
 JSON_SCHEMA_VERSION = 1

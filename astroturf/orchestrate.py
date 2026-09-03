@@ -1,4 +1,4 @@
-"""The split-and-replay experiment (REQUIREMENTS_1.md §4.1).
+"""The split-and-replay experiment (REQUIREMENTS.md §4.1).
 
 Ties the deterministic core together: resolve the diff, classify it, and — only when a
 test or config file changed (FR-13) — replay the build twice in isolated worktrees:

@@ -1,4 +1,4 @@
-"""Output rendering (REQUIREMENTS_1.md §6.6, FR-31..FR-33).
+"""Output rendering (REQUIREMENTS.md §6.6, FR-31..FR-33).
 
 Human-readable stdout naming specific tests and goals, not counts, grouped by module
 (FR-31). Machine-readable JSON for CI carrying the full findings list and the headline

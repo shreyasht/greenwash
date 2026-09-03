@@ -1,4 +1,4 @@
-"""Flake confirmation (REQUIREMENTS_1.md §6.5, FR-26..FR-29, DR-2).
+"""Flake confirmation (REQUIREMENTS.md §6.5, FR-26..FR-29, DR-2).
 
 Before a per-test finding is reported, confirm it by re-running that test in both A and B
 configurations K additional times (default K=2, configurable). The finding survives only

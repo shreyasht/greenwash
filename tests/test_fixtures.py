@@ -1,4 +1,4 @@
-"""End-to-end regression suite against real Maven fixtures (REQUIREMENTS_1.md §11).
+"""End-to-end regression suite against real Maven fixtures (REQUIREMENTS.md §11).
 
 Each fixtures/<name>/ holds base/ and head/ project trees plus expected.json. The harness
 builds a throwaway git repo (base commit, then head commit) and runs astroturf in

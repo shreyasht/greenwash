@@ -1,4 +1,4 @@
-"""Replay execution (REQUIREMENTS_1.md §6.3, FR-12..FR-18).
+"""Replay execution (REQUIREMENTS.md §6.3, FR-12..FR-18).
 
 Run A ("after"): all hunks applied.
 Run B ("source-only"): test + config reverted to base.
