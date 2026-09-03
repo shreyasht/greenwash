@@ -80,9 +80,14 @@ def _touches_both(repo: Path, sha: str) -> bool:
 
 
 def select_commits(repo: Path, n: int, since: str | None) -> list[str]:
-    """Newest `n` non-merge first-parent commits that touch both trees, at any
-    module depth."""
-    args = ["log", "--first-parent", "--no-merges", "--format=%H"]
+    """Newest `n` non-merge commits reachable from HEAD that touch both trees, at
+    any module depth.
+
+    No `--first-parent`: repos that land PRs as merge commits (e.g. stleary/JSON-java)
+    keep the real authored changes on the second parent, and an individual PR commit
+    is a cleaner unit for the measurement than a squashed merge anyway.
+    """
+    args = ["log", "--no-merges", "--format=%H"]
     if since:
         args.append(f"--since={since}")
     # bare form catches a top-level src/tree; glob form catches module/src/tree.
