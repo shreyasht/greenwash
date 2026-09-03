@@ -8,11 +8,15 @@
 astroturf re-runs your test suite with the agent's test edits withheld. If a test only
 passes when its own edits are applied, the fix is in the assertion, not the code.
 
-Java / Maven / Gradle. Single Python file, stdlib only, nothing leaves your machine.
+Java / Maven / Gradle. Python stdlib only, zero runtime dependencies, nothing leaves your
+machine.
 
-> **Status: v0.1, early.** The core mechanic works and is covered by fixtures. Several
-> requirements in the [roadmap](#roadmap) are not built yet and are marked as such. If you
-> are evaluating this for a team, read [Known limitations](#known-limitations) first.
+> **Status: 0.3, pre-release.** The split-and-replay core, the gate observable
+> (`CONFIG_WEAKENED`), flake confirmation, module-aware identity and run C
+> (`TESTS_UPDATED_FOR_BEHAVIOR_CHANGE`) are all shipped and fixture-covered. The
+> false-positive and compile-wall rates (`docs/`, NFR-6 / §9) are still being measured
+> against real repositories. If you are evaluating this for a team, read
+> [Known limitations](#known-limitations) first.
 
 ---
 

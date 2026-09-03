@@ -2,10 +2,13 @@ name: release
 
 # Tag a release commit `vX.Y.Z` (matching astroturf/__init__.py __version__) and push
 # the tag. This builds the wheel, sdist and the offline zipapp, publishes the wheel and
-# sdist to PyPI via Trusted Publishing (OIDC — no API token stored anywhere), and
-# attaches all three to a GitHub Release.
+# sdist via Trusted Publishing (OIDC — no API token stored anywhere), and attaches all
+# three to a GitHub Release.
 #
-# One-time PyPI setup: see RELEASING.md.
+#   pre-release tag (contains "rc")  -> TestPyPI   e.g. v0.3.0rc1
+#   final tag                        -> PyPI       e.g. v0.3.0
+#
+# One-time publisher + environment setup: see RELEASING.md.
 
 on:
   push:
@@ -32,8 +35,27 @@ jobs:
           name: dist
           path: dist/
 
+  testpypi:
+    needs: build
+    if: contains(github.ref_name, 'rc')
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: keep only the Python distributions
+        run: rm -f dist/astroturf.pyz
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
   pypi:
     needs: build
+    if: ${{ !contains(github.ref_name, 'rc') }}
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -65,3 +87,4 @@ jobs:
           --repo "${{ github.repository }}"
           --title "${{ github.ref_name }}"
           --generate-notes
+          ${{ contains(github.ref_name, 'rc') && '--prerelease' || '' }}
