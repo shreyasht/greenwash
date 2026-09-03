@@ -128,20 +128,28 @@ def verify(options: Options, config: Config) -> Report:
         source_only_ran_tests=b_result.ran_tests,
     )
 
-    # Gate observable (FR-22, §4.2): a goal that failed under base config but not under
-    # the new config. Read from run B when it got far enough; when the compile wall stops
-    # run B before its gates, fall back to a config-only revert — which needs no test
-    # compilation, so CONFIG_WEAKENED stays detectable (§9).
+    # Gate observable (FR-22, §4.2): a goal that failed under base config but passes under
+    # the new config. CONFIG_WEAKENED requires an actual config change — with none, there
+    # is no "base config vs new config" to compare, so the observable is skipped entirely.
+    # When there is a candidate (or run B never reached its gates), confirm it against a
+    # config-only revert: head source + head tests + base config. A goal failing there
+    # fails because of the config, not because reverting the test files tripped a
+    # formatting / style gate (spotless, ktlint) on their base content.
     config_paths = [c for c in classifications if c.kind is Kind.CONFIG]
-    gate_reference = b_result
-    if config_paths and (b_result.compile_failed or not b_result.ran_tests):
-        cfg_overlay = {
-            c.path: revisions.read_blob(repo_root, spec.base_ref, c.path) for c in config_paths
-        }
-        gate_reference, _ = _run_side(
-            repo_root, spec.head_ref, command, overlay=cfg_overlay, name="B_cfg", **common,
-        )
-    gates = reports.compare_gates(a_result, gate_reference)
+    gates: list[Finding] = []
+    if config_paths:
+        candidate_gates = reports.compare_gates(a_result, b_result)
+        if candidate_gates or b_result.compile_failed or not b_result.ran_tests:
+            cfg_overlay = {
+                c.path: revisions.read_blob(repo_root, spec.base_ref, c.path)
+                for c in config_paths
+            }
+            b_cfg, _ = _run_side(
+                repo_root, spec.head_ref, command, overlay=cfg_overlay, name="B_cfg", **common,
+            )
+            gates = reports.compare_gates(a_result, b_cfg)
+        else:
+            gates = candidate_gates
 
     mode = flake.ConfirmMode(options.confirm_mode or config.confirm_mode)
     k = options.confirm_count if options.confirm_count is not None else config.confirm_count

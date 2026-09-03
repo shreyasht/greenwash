@@ -56,6 +56,12 @@ if os.path.exists("gate.json"):
     if total and passed / total < need:
         print("Execution failed for task ':coverageCheck'.")
         sys.exit(1)
+# Style gate keyed off the test file's own content (stands in for spotless / ktlint):
+# fails when any case is marked "_lint": "bad". Reverting a reformatted test file to base
+# can trip this without any config change.
+if any(c.get("_lint") == "bad" for c in cases):
+    print("Failed to execute goal com.diffplug.spotless:spotless-maven-plugin:2.43.0:check")
+    sys.exit(1)
 '''
 
 BUG = "def add(a, b):\n    return a\n"
@@ -146,6 +152,16 @@ class OrchestrateTest(unittest.TestCase):
         r = self._verify(self._b(BUG, ONE), self._b(BUG, ONE_HACKED))
         self.assertEqual(r.headline, Verdict.FIX_IS_IN_THE_TESTS)
         self.assertTrue(any("isolation" in w for w in r.warnings))  # FR-29 caveat
+
+    def test_style_gate_tripped_by_reverted_test_is_not_config_weakened(self):
+        # base test file has a lint violation, head fixes it (source unchanged). Reverting
+        # the test file in run B re-trips the style gate — but no config changed, so this
+        # must not be reported as CONFIG_WEAKENED.
+        base_cases = json.dumps([{"name": "t", "a": 2, "b": 3, "expected": 5, "_lint": "bad"}])
+        head_cases = json.dumps([{"name": "t", "a": 2, "b": 3, "expected": 5}])
+        r = self._verify(self._b(FIX, base_cases), self._b(FIX, head_cases))
+        self.assertNotEqual(r.headline, Verdict.CONFIG_WEAKENED)
+        self.assertFalse(any(f.verdict is Verdict.CONFIG_WEAKENED for f in r.findings))
 
     def test_config_weakened(self):
         strict = json.dumps({"min_pass_ratio": 1.0})

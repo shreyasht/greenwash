@@ -113,4 +113,33 @@ fail open on unrecognised verdicts, DR-5).
 
 ---
 
-_Add new records below as DR-10, DR-11, …_
+## DR-10 — The gate observable requires a config change and is confirmed config-only
+
+*Accepted 2026-09-03.*
+
+The `assertj-core` measurement run flagged `fee8cad5` (a source + test refactor, **no
+config file touched**) as `CONFIG_WEAKENED` on `spotless-maven-plugin:check`. Cause:
+`compare_gates` ran unconditionally against run B (test **and** config reverted). Run B
+puts the *base* test files back, and their formatting no longer satisfies the head
+project style, so `spotless:check` fails in B but not in A — identical in shape to a
+weakened gate, but nothing was weakened.
+
+Decision, two parts:
+
+1. **A config change is necessary.** `CONFIG_WEAKENED` means "a gate that failed under the
+   base config passes under the new config". With no config file in the diff there is no
+   base-vs-new config to compare, so the gate observable is skipped entirely.
+2. **Confirm config-only.** When there *is* a config change and run B shows a candidate
+   gate failure (or never reached its gates), re-run with **only** the config reverted —
+   head source, head tests, base config (`B_cfg`) — and take the gate finding from that.
+   A goal failing in `B_cfg` fails because of the config, not because reverting the test
+   files tripped a formatting / style gate on their base content. The extra run happens
+   only when there is a candidate, like flake confirmation for the per-test observable
+   (NFR-7).
+
+`INCONCLUSIVE_COMPILE` handling is unchanged: a `B_cfg` run still covers the case where
+the compile wall stops run B before its gates.
+
+---
+
+_Add new records below as DR-11, DR-12, …_

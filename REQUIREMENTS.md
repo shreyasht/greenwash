@@ -199,6 +199,9 @@ highest-precedence finding across all of them — one offending module fails the
   doing so fabricates findings. Module is derived from the report's location.
 - **FR-21** Report tests that pass only with test/config edits applied.
 - **FR-22** Report build goals that fail under base config but pass under new config.
+  Requires a config change in the diff, and the failure is confirmed against a
+  config-only revert (head source + head tests + base config) so a style/formatting gate
+  tripped by reverted test files is not mistaken for a weakened gate (DR-10).
 - **FR-23** Report tests newly skipped, and tests present at base but absent after. When a
   vanished test has a same-named counterpart under a different class in the after run,
   label it a probable rename rather than a removal.
